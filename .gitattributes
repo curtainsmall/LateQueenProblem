@@ -1,0 +1,96 @@
+# ============================================================
+# Unity 6 / LateQueenProblem — 换行、合并驱动、二进制标记、Git LFS
+# 与 ../Decoherence 保持同一套规则
+# ============================================================
+
+# 文本文件在仓库内统一归一化为 LF。
+# 不额外强制 eol=lf：Unity 新建脚本默认写 CRLF，留出容错空间，
+# 避免每次新建脚本都出现纯换行差异。
+* text=auto
+
+# ---------- C# / 着色器 / 配置：普通文本合并 ----------
+*.cs           text diff=csharp
+*.shader       text
+*.compute      text
+*.hlsl         text
+*.cginc        text
+*.glslinc      text
+*.asmdef       text
+*.asmref       text
+*.json         text
+*.xml          text
+*.md           text
+*.txt          text
+*.yml          text
+*.yaml         text
+*.inputactions text
+
+# ---------- Unity YAML 序列化资源：只做换行归一化 ----------
+# 这里不要再写 merge=unityyamlmerge。
+# Unity 官方只支持 `git mergetool`（配置在全局 .gitconfig 的
+# merge.tool / mergetool.unityyamlmerge 里）；属性里声明了合并驱动
+# 而配置中没有对应驱动时，git 会静默退回文本合并，看起来像启用了
+# SmartMerge 实际却没有。
+*.unity              text
+*.prefab             text
+*.asset              text
+*.mat                text
+*.anim               text
+*.controller         text
+*.overrideController text
+*.mask               text
+*.physicMaterial     text
+*.physicsMaterial2D  text
+*.preset             text
+*.renderTexture      text
+*.meta               text
+
+# ============================================================
+# Git LFS：大二进制素材。命中靠「路径规则」，与文件大小无关。
+# 仓库里只存指针，真实内容由 LFS 存储保管。
+# 例外可以就地覆盖，例如把 UI 小图标退回普通 git：
+#   Assets/UI/Icons/**/*.png -filter -diff -merge text
+# ============================================================
+
+# 图片 / 贴图
+*.png        filter=lfs diff=lfs merge=lfs -text
+*.jpg        filter=lfs diff=lfs merge=lfs -text
+*.jpeg       filter=lfs diff=lfs merge=lfs -text
+*.tga        filter=lfs diff=lfs merge=lfs -text
+*.tif        filter=lfs diff=lfs merge=lfs -text
+*.tiff       filter=lfs diff=lfs merge=lfs -text
+*.psd        filter=lfs diff=lfs merge=lfs -text
+*.exr        filter=lfs diff=lfs merge=lfs -text
+*.hdr        filter=lfs diff=lfs merge=lfs -text
+*.bmp        filter=lfs diff=lfs merge=lfs -text
+*.gif        filter=lfs diff=lfs merge=lfs -text
+
+# 模型
+*.fbx        filter=lfs diff=lfs merge=lfs -text
+*.obj        filter=lfs diff=lfs merge=lfs -text
+*.blend      filter=lfs diff=lfs merge=lfs -text
+
+# 音频
+*.wav        filter=lfs diff=lfs merge=lfs -text
+*.mp3        filter=lfs diff=lfs merge=lfs -text
+*.ogg        filter=lfs diff=lfs merge=lfs -text
+*.aiff       filter=lfs diff=lfs merge=lfs -text
+
+# 视频
+*.mp4        filter=lfs diff=lfs merge=lfs -text
+*.mov        filter=lfs diff=lfs merge=lfs -text
+*.webm       filter=lfs diff=lfs merge=lfs -text
+
+# 导入包：*.unitypackage 是资产交换/交付用的二进制归档，已被 .gitignore 忽略，
+# 所以这里不配 LFS（被 ignore 的文件进不了索引，规则永远不会命中）。
+# 真要存档某个包，走 GitHub Releases，或对该文件单独 `git lfs track`。
+
+# ---------- 其余二进制：走普通 git，不做文本转换与逐行 diff ----------
+*.dll    binary
+*.so     binary
+*.dylib  binary
+*.bundle binary
+*.ttf    binary
+*.otf    binary
+*.zip    binary
+*.7z     binary
