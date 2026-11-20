@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class Frame : MonoBehaviour
 {
-    [SerializeField, Tooltip("这个帧渲染所用的 diorama，运行时绑定。")]
     Diorama _diorama;
 
     [SerializeField, Tooltip("显示画面的渲染器，会把渲染纹理贴上去。")]

@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FrameInteractor
   _camera: {fileID: 330585545}
-  _frameManager: {fileID: 1408023233}
+  _frameManager: {fileID: 1662807798}
   _maxDistance: 100
 --- !u!1 &481458732
 GameObject:
@@ -1676,76 +1676,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!1 &1408023231
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1408023232}
-  - component: {fileID: 1408023233}
-  - component: {fileID: 1408023234}
-  m_Layer: 0
-  m_Name: Systems
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1408023232
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1408023231}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1408023233
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1408023231}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dfcd0cc70c8e5db48a2dac80f3f9dabe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FrameManager
-  _framePrefab: {fileID: 1233859896695510852, guid: c6a770c5ba0b1ec48a87c3c4652fba0d, type: 3}
-  _framesRoot: {fileID: 1662807796}
-  _dioramas:
-  - {fileID: 11400000, guid: 9b380cd288e7f7043b0361c3a26101c1, type: 2}
-  _spacing: 1
-  _resolution: 512
-  _height: 0.79
---- !u!114 &1408023234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1408023231}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 83e956ea8f2ae634c9143690901d6f80, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EditController
-  _dioramaManager: {fileID: 295124652}
-  _frameManager: {fileID: 1408023233}
-  _dragSpeed: 0.25
-  _fovSpeed: 2
-  _minFov: 12
-  _maxFov: 90
 --- !u!1 &1492359352
 GameObject:
   m_ObjectHideFlags: 0
@@ -1999,6 +1929,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1662807796}
   - component: {fileID: 1662807797}
+  - component: {fileID: 1662807798}
+  - component: {fileID: 1662807799}
   m_Layer: 0
   m_Name: Table
   m_TagString: Untagged
@@ -2051,6 +1983,41 @@ MonoBehaviour:
   _warpStrength: 2.2
   _lightColor: {r: 0.86, g: 0.66, b: 0.42, a: 1}
   _darkColor: {r: 0.42, g: 0.25, b: 0.14, a: 1}
+--- !u!114 &1662807798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662807795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfcd0cc70c8e5db48a2dac80f3f9dabe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FrameManager
+  _framePrefab: {fileID: 1233859896695510852, guid: c6a770c5ba0b1ec48a87c3c4652fba0d, type: 3}
+  _framesRoot: {fileID: 1662807796}
+  _spacing: 1
+  _height: 0.79
+  _resolution: 512
+--- !u!114 &1662807799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662807795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83e956ea8f2ae634c9143690901d6f80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EditController
+  _dioramaManager: {fileID: 295124652}
+  _frameManager: {fileID: 1662807798}
+  _dragSpeed: 0.25
+  _fovSpeed: 2
+  _minFov: 12
+  _maxFov: 90
 --- !u!1 &1674386121
 GameObject:
   m_ObjectHideFlags: 0
@@ -2313,4 +2280,3 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 1643082078}
   - {fileID: 295124651}
-  - {fileID: 1408023232}
