@@ -4,6 +4,9 @@ using UnityEngine;
 [ExecuteAlways]
 public class ProceduralWood : MonoBehaviour
 {
+    [SerializeField, Tooltip("要套用木纹的渲染器。留空时作用于所有子渲染器。")]
+    Renderer[] _targets;
+
     [SerializeField, Tooltip("程序生成的木纹贴图边长，单位像素。正方形，建议 512 到 2048。")]
     int _resolution = 1024;
 
@@ -36,6 +39,9 @@ public class ProceduralWood : MonoBehaviour
     [ContextMenu("Rebuild")]
     void Rebuild()
     {
+        ClearAll();
+        if (_targets == null || _targets.Length == 0) return;
+
         if (_texture == null || _texture.width != _resolution)
         {
             DestroyTexture();
@@ -80,24 +86,29 @@ public class ProceduralWood : MonoBehaviour
         if (_block == null) _block = new MaterialPropertyBlock();
         _block.SetTexture("_BaseMap", _texture);
 
-        foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+        foreach (Renderer renderer in _targets)
         {
+            if (renderer == null) continue;
             renderer.SetPropertyBlock(_block);
         }
     }
 
     private void OnDisable()
     {
-        var empty = new MaterialPropertyBlock();
-        foreach (var renderer in GetComponentsInChildren<Renderer>(true))
-        {
-            renderer.SetPropertyBlock(empty);
-        }
+        ClearAll();
     }
 
     private void OnDestroy()
     {
         DestroyTexture();
+    }
+
+    void ClearAll()
+    {
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        {
+            renderer.SetPropertyBlock(null);
+        }
     }
 
     void DestroyTexture()
