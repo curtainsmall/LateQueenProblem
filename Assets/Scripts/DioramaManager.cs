@@ -87,8 +87,18 @@ public class DioramaManager : MonoBehaviour
             go.transform.localPosition = entry.Position;
             go.transform.localRotation = Quaternion.Euler(entry.Rotation);
             go.transform.localScale = entry.Scale;
+            SetLayer(go);
 
             _built.Add(go);
+        }
+    }
+
+    void SetLayer(GameObject go)
+    {
+        int layer = gameObject.layer;
+        foreach (Transform child in go.GetComponentsInChildren<Transform>(true))
+        {
+            child.gameObject.layer = layer;
         }
     }
 
