@@ -12,12 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d0bf57a18ab6884f9dff768c7c0fd71, type: 3}
   m_Name: Room
   m_EditorClassIdentifier: Assembly-CSharp::Diorama
-  _id: '"room"'
-  _content: {fileID: 0}
-  _lightDirection: {x: 52, y: 38, z: 0}
-  _lightColor: {r: 1, g: 1, b: 1, a: 1}
-  _lightIntensity: 1.2
+  _material: {fileID: 0}
+  _objects: []
+  _lights: []
   _ambient: {r: 0.3, g: 0.31, b: 0.34, a: 1}
-  _defaultYaw: 25
-  _defaultPitch: 18
-  _defaultZoom: 1.2
+  _cameraPosition: {x: 0, y: 2, z: -4}
+  _cameraRotation: {x: 18, y: 25, z: 0}
+  _cameraFov: 50

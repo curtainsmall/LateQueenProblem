@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class Frame : MonoBehaviour
 {
-    [SerializeField, Tooltip("这一帧要显示的内容定义，运行时绑定。")]
+    [SerializeField, Tooltip("这个帧渲染所用的 diorama，运行时绑定。")]
     Diorama _diorama;
 
     [SerializeField, Tooltip("显示画面的渲染器，会把渲染纹理贴上去。")]
@@ -20,9 +20,9 @@ public class Frame : MonoBehaviour
     public Diorama Diorama => _diorama;
     public RenderTexture Target => _target;
     public bool IsEditing { get; set; }
-    public float SavedYaw { get; set; }
-    public float SavedPitch { get; set; }
-    public float SavedZoom { get; set; }
+    public Vector3 SavedPosition { get; set; }
+    public Vector3 SavedRotation { get; set; }
+    public float SavedFov { get; set; }
 
     public void Bind(Diorama diorama)
     {
@@ -30,9 +30,9 @@ public class Frame : MonoBehaviour
         if (diorama == null) return;
 
         name = diorama.name;
-        SavedYaw = diorama.DefaultYaw;
-        SavedPitch = diorama.DefaultPitch;
-        SavedZoom = diorama.DefaultZoom;
+        SavedPosition = diorama.CameraPosition;
+        SavedRotation = diorama.CameraRotation;
+        SavedFov = diorama.CameraFov;
     }
 
     public void Initialize(int width, int height)

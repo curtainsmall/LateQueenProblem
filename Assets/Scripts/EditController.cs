@@ -9,11 +9,17 @@ public class EditController : MonoBehaviour
     [SerializeField, Tooltip("帧管理器，点击事件从这里取。")]
     FrameManager _frameManager;
 
-    [SerializeField, Tooltip("拖拽旋转的灵敏度。")]
+    [SerializeField, Tooltip("拖拽旋转的灵敏度，单位度每像素。")]
     float _dragSpeed = 0.25f;
 
-    [SerializeField, Tooltip("滚轮缩放的灵敏度。")]
-    float _zoomSpeed = 0.1f;
+    [SerializeField, Tooltip("滚轮缩放的灵敏度，单位度每格。")]
+    float _fovSpeed = 2f;
+
+    [SerializeField, Tooltip("视角上限，单位度。")]
+    float _minFov = 12f;
+
+    [SerializeField, Tooltip("视角下限，单位度。")]
+    float _maxFov = 90f;
 
     Frame _editing;
 
@@ -51,9 +57,9 @@ public class EditController : MonoBehaviour
         _dioramaManager.Show(
             frame.Diorama,
             frame.Target,
-            frame.SavedYaw,
-            frame.SavedPitch,
-            frame.SavedZoom);
+            frame.SavedPosition,
+            frame.SavedRotation,
+            frame.SavedFov);
     }
 
     public void End()
@@ -70,31 +76,29 @@ public class EditController : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        float yaw = _editing.SavedYaw;
-        float pitch = _editing.SavedPitch;
-        float zoom = _editing.SavedZoom;
+        Vector3 rotation = _editing.SavedRotation;
+        float fov = _editing.SavedFov;
         bool changed = false;
 
         if (mouse.rightButton.isPressed)
         {
             Vector2 delta = mouse.delta.ReadValue();
-            yaw += delta.x * _dragSpeed;
-            pitch = Mathf.Clamp(pitch - delta.y * _dragSpeed, -80f, 85f);
+            rotation.x = Mathf.Clamp(rotation.x - delta.y * _dragSpeed, -85f, 85f);
+            rotation.y += delta.x * _dragSpeed;
             changed = true;
         }
 
         float scroll = mouse.scroll.ReadValue().y;
         if (Mathf.Abs(scroll) > 0.01f)
         {
-            zoom = Mathf.Clamp(zoom * (1f - Mathf.Sign(scroll) * _zoomSpeed), 0.35f, 6f);
+            fov = Mathf.Clamp(fov - Mathf.Sign(scroll) * _fovSpeed, _minFov, _maxFov);
             changed = true;
         }
 
         if (!changed) return;
 
-        _editing.SavedYaw = yaw;
-        _editing.SavedPitch = pitch;
-        _editing.SavedZoom = zoom;
-        _dioramaManager.SetView(yaw, pitch, zoom);
+        _editing.SavedRotation = rotation;
+        _editing.SavedFov = fov;
+        _dioramaManager.SetView(_editing.SavedPosition, rotation, fov);
     }
 }

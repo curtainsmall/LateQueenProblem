@@ -1,60 +1,32 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 public class DioramaManager : MonoBehaviour
 {
-    [SerializeField, Tooltip("内容挂接点。diorama 的预制体实例化到这里。")]
-    Transform _anchor;
-
-    [SerializeField, Tooltip("渲染帧的相机。正交，渲到目标纹理。")]
+    [SerializeField, Tooltip("渲染帧的相机。位置与朝向都由 diorama 决定。")]
     Camera _camera;
 
-    [SerializeField, Tooltip("主光，方向由 diorama 决定。")]
-    Light _keyLight;
-
-    [SerializeField, Tooltip("补光，不投影，只提亮暗部。")]
-    Light _fillLight;
-
-    [SerializeField, Tooltip("相机到锚点的固定距离。")]
-    float _distance = 5f;
-
-    GameObject _content;
+    readonly List<GameObject> _built = new List<GameObject>();
     RenderTexture _target;
     Color _savedAmbient;
 
-    public bool IsShowing => _target != null;
-
-    public void Show(Diorama diorama, RenderTexture target, float yaw, float pitch, float zoom)
+    public void Show(Diorama diorama, RenderTexture target, Vector3 position, Vector3 rotation, float fov)
     {
-        if (diorama == null || target == null) return;
+        if (diorama == null || target == null || _camera == null) return;
 
         Hide();
 
         _savedAmbient = RenderSettings.ambientLight;
         _target = target;
 
-        _keyLight.transform.rotation = Quaternion.Euler(diorama.LightDirection);
-        _keyLight.color = diorama.LightColor;
-        _keyLight.intensity = diorama.LightIntensity;
+        BuildLights(diorama);
+        BuildObjects(diorama);
 
         RenderSettings.ambientMode = AmbientMode.Flat;
         RenderSettings.ambientLight = diorama.Ambient;
 
-        if (_fillLight != null)
-        {
-            _fillLight.transform.rotation = Quaternion.Euler(diorama.LightDirection + new Vector3(-25f, 140f, 0f));
-            _fillLight.color = diorama.LightColor;
-            _fillLight.intensity = diorama.LightIntensity * 0.25f;
-        }
-
-        if (diorama.Content != null)
-        {
-            _content = Instantiate(diorama.Content, _anchor);
-            _content.transform.localPosition = Vector3.zero;
-            _content.transform.localRotation = Quaternion.identity;
-        }
-
-        SetView(yaw, pitch, zoom);
+        SetView(position, rotation, fov);
 
         _camera.targetTexture = _target;
         _camera.enabled = true;
@@ -68,21 +40,64 @@ public class DioramaManager : MonoBehaviour
         _camera.targetTexture = null;
         _target = null;
 
-        if (_content != null)
-        {
-            Destroy(_content);
-            _content = null;
-        }
-
+        Clear();
         RenderSettings.ambientLight = _savedAmbient;
     }
 
-    public void SetView(float yaw, float pitch, float zoom)
+    public void SetView(Vector3 position, Vector3 rotation, float fov)
     {
-        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
-        _camera.transform.position = _anchor.position + rotation * new Vector3(0f, 0f, -_distance);
-        _camera.transform.rotation = rotation;
-        _camera.orthographic = true;
-        _camera.orthographicSize = zoom;
+        _camera.transform.localPosition = position;
+        _camera.transform.localRotation = Quaternion.Euler(rotation);
+        _camera.orthographic = false;
+        _camera.fieldOfView = Mathf.Clamp(fov, 5f, 120f);
+    }
+
+    void BuildLights(Diorama diorama)
+    {
+        if (diorama.Lights == null) return;
+
+        foreach (DioramaLight entry in diorama.Lights)
+        {
+            var go = new GameObject("Light");
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = entry.Position;
+            go.transform.localRotation = Quaternion.Euler(entry.Direction);
+
+            Light light = go.AddComponent<Light>();
+            light.type = entry.Type;
+            light.color = entry.Color;
+            light.intensity = entry.Intensity;
+            light.range = entry.Range;
+            light.shadows = entry.Shadows ? LightShadows.Hard : LightShadows.None;
+
+            _built.Add(go);
+        }
+    }
+
+    void BuildObjects(Diorama diorama)
+    {
+        if (diorama.Objects == null) return;
+
+        foreach (DioramaObject entry in diorama.Objects)
+        {
+            if (entry.Prefab == null) continue;
+
+            GameObject go = Instantiate(entry.Prefab, transform);
+            go.transform.SetParent(transform, false);
+            go.transform.localPosition = entry.Position;
+            go.transform.localRotation = Quaternion.Euler(entry.Rotation);
+            go.transform.localScale = entry.Scale;
+
+            _built.Add(go);
+        }
+    }
+
+    void Clear()
+    {
+        foreach (GameObject go in _built)
+        {
+            if (go != null) Destroy(go);
+        }
+        _built.Clear();
     }
 }
