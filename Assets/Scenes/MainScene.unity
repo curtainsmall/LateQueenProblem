@@ -543,11 +543,11 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalPosition: {x: 0, y: 2.75, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1674386122}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &330585547
 MonoBehaviour:
@@ -605,9 +605,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06d7163a434fe354aa07870d929277fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraEdgePan
-  region: {fileID: 1674386122}
-  edgePixels: 40
-  speed: 1.2
+  _region: {fileID: 1674386122}
+  _edgePixels: 40
+  _speed: 1.2
 --- !u!1 &421171893
 GameObject:
   m_ObjectHideFlags: 0
@@ -2011,7 +2011,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!23 &1567711093
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2317,6 +2317,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1662807796}
+  - component: {fileID: 1662807797}
   m_Layer: 0
   m_Name: Table
   m_TagString: Untagged
@@ -2344,6 +2345,23 @@ Transform:
   - {fileID: 1500988447}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1662807797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662807795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 472a89835a80d834dbf6d5789b1c3c61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralWood
+  _resolution: 1024
+  _grainFrequency: 34
+  _warpStrength: 2.2
+  _lightColor: {r: 0.86, g: 0.66, b: 0.42, a: 1}
+  _darkColor: {r: 0.42, g: 0.25, b: 0.14, a: 1}
 --- !u!1 &1667125347
 GameObject:
   m_ObjectHideFlags: 0
@@ -2482,10 +2500,9 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.75, z: 2}
-  m_LocalScale: {x: 1, y: 1, z: 1.2}
+  m_LocalScale: {x: 1.2, y: 1, z: 0.8}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 330585546}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1675469883
@@ -2836,3 +2853,4 @@ SceneRoots:
   - {fileID: 666540928}
   - {fileID: 1567711096}
   - {fileID: 1674386122}
+  - {fileID: 330585546}
