@@ -9,14 +9,23 @@ public class FrameManager : MonoBehaviour
     [SerializeField, Tooltip("帧实例的父物体，通常挂在桌面中心。")]
     Transform _framesRoot;
 
-    [SerializeField, Tooltip("相邻帧中心之间的间距。")]
-    float _spacing = 1f;
+    [SerializeField, Tooltip("一行的帧数，超出后换行。")]
+    int _columns = 8;
+
+    [SerializeField, Tooltip("帧在桌面上的水平尺寸，与预制体里的显示面一致。")]
+    Vector2 _frameSize = new Vector2(0.64f, 0.36f);
+
+    [SerializeField, Tooltip("相邻帧之间的留白。")]
+    float _padding = 0.06f;
 
     [SerializeField, Tooltip("帧在父物体下的高度。")]
-    float _height = 0.79f;
+    float _frameHeight = 0.79f;
 
-    [SerializeField, Tooltip("每张渲染纹理的边长。")]
-    int _resolution = 512;
+    [SerializeField, Tooltip("渲染纹理的宽度。")]
+    int _textureWidth = 512;
+
+    [SerializeField, Tooltip("渲染纹理的高度。")]
+    int _textureHeight = 288;
 
     readonly List<Frame> _created = new List<Frame>();
     Frame _clickedFrame;
@@ -29,21 +38,30 @@ public class FrameManager : MonoBehaviour
 
         if (dioramas == null || _framePrefab == null || _framesRoot == null) return;
 
+        int columns = Mathf.Max(1, _columns);
+        int rows = Mathf.CeilToInt(dioramas.Count / (float)columns);
+        float stepX = _frameSize.x + _padding;
+        float stepZ = _frameSize.y + _padding;
+
         for (int i = 0; i < dioramas.Count; i++)
         {
             Diorama diorama = dioramas[i];
             if (diorama == null) continue;
 
+            int column = i % columns;
+            int row = i / columns;
+            float x = (column - (columns - 1) * 0.5f) * stepX;
+            float z = ((rows - 1) * 0.5f - row) * stepZ;
+
             GameObject instance = Instantiate(_framePrefab, _framesRoot);
-            float offset = (i - (dioramas.Count - 1) * 0.5f) * _spacing;
-            instance.transform.localPosition = new Vector3(offset, _height, 0f);
+            instance.transform.localPosition = new Vector3(x, _frameHeight, z);
             instance.transform.localRotation = Quaternion.identity;
 
             Frame frame = instance.GetComponent<Frame>();
             if (frame == null) continue;
 
             frame.Bind(diorama);
-            frame.Initialize(_resolution, _resolution);
+            frame.Initialize(_textureWidth, _textureHeight);
             frame.Clicked += OnFrameClicked;
 
             _created.Add(frame);
