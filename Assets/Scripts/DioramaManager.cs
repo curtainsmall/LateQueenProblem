@@ -97,10 +97,10 @@ public class DioramaManager : MonoBehaviour
         BuildLights(diorama);
         BuildObjects(diorama);
 
-        _renderCamera.transform.localPosition = diorama.CameraPosition;
-        _renderCamera.transform.localRotation = Quaternion.Euler(diorama.CameraRotation);
+        _renderCamera.transform.localPosition = diorama.Camera.Position;
+        _renderCamera.transform.localRotation = Quaternion.Euler(diorama.Camera.Rotation);
         _renderCamera.orthographic = false;
-        _renderCamera.fieldOfView = Mathf.Clamp(diorama.CameraFov, 5f, 120f);
+        _renderCamera.fieldOfView = Mathf.Clamp(diorama.Camera.Fov, 5f, 120f);
 
         bool wasEnabled = _renderCamera.enabled;
         _renderCamera.enabled = false;
@@ -130,14 +130,14 @@ public class DioramaManager : MonoBehaviour
     void ApplyGlobals(Diorama diorama)
     {
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = diorama.AmbientColor;
+        RenderSettings.ambientLight = diorama.Environment.AmbientColor;
 
-        if (diorama.Skybox != null) RenderSettings.skybox = diorama.Skybox;
+        if (diorama.Environment.Skybox != null) RenderSettings.skybox = diorama.Environment.Skybox;
 
-        RenderSettings.fog = diorama.FogEnabled;
+        RenderSettings.fog = diorama.Environment.FogEnabled;
         RenderSettings.fogMode = FogMode.Exponential;
-        RenderSettings.fogColor = diorama.FogColor;
-        RenderSettings.fogDensity = diorama.FogDensity;
+        RenderSettings.fogColor = diorama.Environment.FogColor;
+        RenderSettings.fogDensity = diorama.Environment.FogDensity;
     }
 
     void RestoreGlobals(SceneGlobals globals)
