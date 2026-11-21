@@ -18,8 +18,8 @@ public class FrameManager : MonoBehaviour
     [SerializeField, Tooltip("相邻帧之间的留白。")]
     float _padding = 0.06f;
 
-    [SerializeField, Tooltip("帧在父物体下的高度。")]
-    float _frameHeight = 0.79f;
+    [SerializeField, Tooltip("帧在父物体下的摆放高度，即桌面顶面的局部高度。")]
+    float _frameSurfaceHeight = 0.79f;
 
     [SerializeField, Tooltip("渲染纹理的宽度。")]
     int _textureWidth = 512;
@@ -27,10 +27,10 @@ public class FrameManager : MonoBehaviour
     [SerializeField, Tooltip("渲染纹理的高度。")]
     int _textureHeight = 288;
 
-    readonly List<Frame> _created = new List<Frame>();
+    readonly List<Frame> _frames = new List<Frame>();
     Frame _clickedFrame;
 
-    public IReadOnlyList<Frame> Frames => _created;
+    public IReadOnlyList<Frame> Frames => _frames;
 
     public void Build(IReadOnlyList<Diorama> dioramas)
     {
@@ -54,7 +54,7 @@ public class FrameManager : MonoBehaviour
             float z = ((rows - 1) * 0.5f - row) * stepZ;
 
             GameObject instance = Instantiate(_framePrefab, _framesRoot);
-            instance.transform.localPosition = new Vector3(x, _frameHeight, z);
+            instance.transform.localPosition = new Vector3(x, _frameSurfaceHeight, z);
             instance.transform.localRotation = Quaternion.identity;
 
             Frame frame = instance.GetComponent<Frame>();
@@ -64,19 +64,19 @@ public class FrameManager : MonoBehaviour
             frame.Initialize(_textureWidth, _textureHeight);
             frame.Clicked += OnFrameClicked;
 
-            _created.Add(frame);
+            _frames.Add(frame);
         }
     }
 
     public void Clear()
     {
-        foreach (Frame frame in _created)
+        foreach (Frame frame in _frames)
         {
             if (frame == null) continue;
             frame.Clicked -= OnFrameClicked;
             Destroy(frame.gameObject);
         }
-        _created.Clear();
+        _frames.Clear();
     }
 
     public Frame ConsumeClicked()

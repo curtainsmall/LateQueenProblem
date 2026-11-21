@@ -1050,7 +1050,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e63c4de49c1ef94e8809f6ce919d7a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DioramaManager
-  _camera: {fileID: 1252834151}
+  _renderCamera: {fileID: 1252834151}
 --- !u!1 &309765076
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,10 +1339,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06d7163a434fe354aa07870d929277fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraEdgePan
-  _region: {fileID: 1674386122}
-  _interactor: {fileID: 330585549}
+  _panRegion: {fileID: 1674386122}
+  _frameInteractor: {fileID: 330585549}
   _edgePixels: 40
-  _speed: 1.2
+  _panSpeed: 1.2
 --- !u!114 &330585549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1355,7 +1355,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87697a3baeb7eac4a9b62fe829dd5f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FrameInteractor
-  _camera: {fileID: 330585545}
+  _raycastCamera: {fileID: 330585545}
   _frameManager: {fileID: 1662807798}
   _maxDistance: 100
 --- !u!114 &330585550
@@ -1370,12 +1370,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63b81b72247ede94fa4d8f05248bc4de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TableZoom
-  _table: {fileID: 1953192093}
-  _region: {fileID: 1674386122}
+  _tableTop: {fileID: 1953192093}
+  _panRegion: {fileID: 1674386122}
   _editController: {fileID: 1662807799}
   _minSize: 0.36
   _maxSize: 2
-  _step: 0.12
+  _scrollStep: 0.12
 --- !u!1 &335154835
 GameObject:
   m_ObjectHideFlags: 0
@@ -6539,7 +6539,7 @@ MonoBehaviour:
   _slotSize: {x: 0.64, y: 0.36}
   _padding: 0.06
   _lineWidth: 0.008
-  _highlightFilter: {fileID: 880249487}
+  _highlightMeshFilter: {fileID: 880249487}
 --- !u!1 &1626927080
 GameObject:
   m_ObjectHideFlags: 0
@@ -6942,7 +6942,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 472a89835a80d834dbf6d5789b1c3c61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralWood
-  _targets:
+  _targetRenderers:
   - {fileID: 1953192093}
   - {fileID: 603777375}
   - {fileID: 513181478}
@@ -6970,7 +6970,7 @@ MonoBehaviour:
   _columns: 8
   _frameSize: {x: 0.64, y: 0.36}
   _padding: 0.06
-  _frameHeight: 0.79
+  _frameSurfaceHeight: 0.79
   _textureWidth: 480
   _textureHeight: 256
 --- !u!114 &1662807799
@@ -6987,8 +6987,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EditController
   _dioramaManager: {fileID: 295124652}
   _frameManager: {fileID: 1662807798}
-  _dragSpeed: 0.25
-  _fovSpeed: 2
+  _rotateSpeed: 0.25
+  _fovStep: 2
   _minFov: 12
   _maxFov: 90
 --- !u!1 &1664819277

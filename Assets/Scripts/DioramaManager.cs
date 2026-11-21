@@ -5,80 +5,78 @@ using UnityEngine.Rendering;
 public class DioramaManager : MonoBehaviour
 {
     [SerializeField, Tooltip("渲染帧的相机。位置与朝向都由 diorama 决定。")]
-    Camera _camera;
+    Camera _renderCamera;
 
-    readonly List<GameObject> _built = new List<GameObject>();
-    RenderTexture _target;
-    Color _savedAmbient;
+    readonly List<GameObject> _spawned = new List<GameObject>();
+    RenderTexture _targetTexture;
+    Color _previousAmbient;
 
     public void Show(Diorama diorama, RenderTexture target, Vector3 position, Vector3 rotation, float fov)
     {
-        if (diorama == null || target == null || _camera == null) return;
+        if (diorama == null || target == null || _renderCamera == null) return;
 
         Hide();
 
-        _savedAmbient = RenderSettings.ambientLight;
-        _target = target;
+        _previousAmbient = RenderSettings.ambientLight;
+        _targetTexture = target;
 
         BuildLights(diorama);
         BuildObjects(diorama);
 
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = diorama.Ambient;
+        RenderSettings.ambientLight = diorama.AmbientColor;
 
         SetView(position, rotation, fov);
 
-        _camera.targetTexture = _target;
-        _camera.enabled = true;
+        _renderCamera.targetTexture = _targetTexture;
+        _renderCamera.enabled = true;
     }
 
     public void Hide()
     {
-        if (_target == null) return;
+        if (_targetTexture == null) return;
 
-        _camera.enabled = false;
-        _camera.targetTexture = null;
-        _target = null;
+        _renderCamera.enabled = false;
+        _renderCamera.targetTexture = null;
+        _targetTexture = null;
 
-        Clear();
-        RenderSettings.ambientLight = _savedAmbient;
+        ClearSpawned();
+        RenderSettings.ambientLight = _previousAmbient;
     }
 
     public void SetView(Vector3 position, Vector3 rotation, float fov)
     {
-        _camera.transform.localPosition = position;
-        _camera.transform.localRotation = Quaternion.Euler(rotation);
-        _camera.orthographic = false;
-        _camera.fieldOfView = Mathf.Clamp(fov, 5f, 120f);
+        _renderCamera.transform.localPosition = position;
+        _renderCamera.transform.localRotation = Quaternion.Euler(rotation);
+        _renderCamera.orthographic = false;
+        _renderCamera.fieldOfView = Mathf.Clamp(fov, 5f, 120f);
     }
 
     void BuildLights(Diorama diorama)
     {
-        if (diorama.Lights == null) return;
+        if (diorama.DirectionalLights == null) return;
 
-        foreach (DioramaLight entry in diorama.Lights)
+        foreach (DioramaDirectionalLight entry in diorama.DirectionalLights)
         {
             var go = new GameObject("Light");
             go.transform.SetParent(transform, false);
-            go.transform.localPosition = entry.Position;
             go.transform.localRotation = Quaternion.Euler(entry.Direction);
 
             Light light = go.AddComponent<Light>();
-            light.type = entry.Type;
+            light.type = LightType.Directional;
             light.color = entry.Color;
             light.intensity = entry.Intensity;
-            light.range = entry.Range;
-            light.shadows = entry.Shadows ? LightShadows.Hard : LightShadows.None;
+            light.shadows = entry.ShouldShadows ? LightShadows.Hard : LightShadows.None;
 
-            _built.Add(go);
+            _spawned.Add(go);
         }
     }
 
     void BuildObjects(Diorama diorama)
     {
-        if (diorama.Objects == null) return;
+        if (diorama.PrefabObjects == null) return;
 
-        foreach (DioramaObject entry in diorama.Objects)
+        foreach (DioramaPrefabObject entry in diorama.PrefabObjects)
         {
             if (entry.Prefab == null) continue;
 
@@ -89,7 +87,7 @@ public class DioramaManager : MonoBehaviour
             go.transform.localScale = entry.Scale;
             SetLayer(go);
 
-            _built.Add(go);
+            _spawned.Add(go);
         }
     }
 
@@ -102,12 +100,12 @@ public class DioramaManager : MonoBehaviour
         }
     }
 
-    void Clear()
+    void ClearSpawned()
     {
-        foreach (GameObject go in _built)
+        foreach (GameObject go in _spawned)
         {
             if (go != null) Destroy(go);
         }
-        _built.Clear();
+        _spawned.Clear();
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 public class ProceduralWood : MonoBehaviour
 {
     [SerializeField, Tooltip("要套用木纹的渲染器。留空时作用于所有子渲染器。")]
-    Renderer[] _targets;
+    Renderer[] _targetRenderers;
 
     [SerializeField, Tooltip("程序生成的木纹贴图边长，单位像素。正方形，建议 512 到 2048。")]
     int _resolution = 1024;
@@ -22,8 +22,8 @@ public class ProceduralWood : MonoBehaviour
     [SerializeField, Tooltip("木纹的暗部颜色。")]
     Color _darkColor = new Color(0.42f, 0.25f, 0.14f, 1f);
 
-    Texture2D _texture;
-    MaterialPropertyBlock _block;
+    Texture2D _woodTexture;
+    MaterialPropertyBlock _propertyBlock;
 
     private void OnEnable()
     {
@@ -39,20 +39,20 @@ public class ProceduralWood : MonoBehaviour
     [ContextMenu("Rebuild")]
     void Rebuild()
     {
-        ClearAll();
-        if (_targets == null || _targets.Length == 0) return;
+        ClearPropertyBlocks();
+        if (_targetRenderers == null || _targetRenderers.Length == 0) return;
 
-        if (_texture == null || _texture.width != _resolution)
+        if (_woodTexture == null || _woodTexture.width != _resolution)
         {
             DestroyTexture();
-            _texture = new Texture2D(_resolution, _resolution, TextureFormat.RGBA32, true);
-            _texture.wrapMode = TextureWrapMode.Repeat;
-            _texture.filterMode = FilterMode.Bilinear;
-            _texture.anisoLevel = 8;
+            _woodTexture = new Texture2D(_resolution, _resolution, TextureFormat.RGBA32, true);
+            _woodTexture.wrapMode = TextureWrapMode.Repeat;
+            _woodTexture.filterMode = FilterMode.Bilinear;
+            _woodTexture.anisoLevel = 8;
         }
 
         int size = _resolution;
-        NativeArray<Color32> data = _texture.GetRawTextureData<Color32>();
+        NativeArray<Color32> data = _woodTexture.GetRawTextureData<Color32>();
 
         for (int y = 0; y < size; y++)
         {
@@ -81,21 +81,21 @@ public class ProceduralWood : MonoBehaviour
             }
         }
 
-        _texture.Apply(true, false);
+        _woodTexture.Apply(true, false);
 
-        if (_block == null) _block = new MaterialPropertyBlock();
-        _block.SetTexture("_BaseMap", _texture);
+        if (_propertyBlock == null) _propertyBlock = new MaterialPropertyBlock();
+        _propertyBlock.SetTexture("_BaseMap", _woodTexture);
 
-        foreach (Renderer renderer in _targets)
+        foreach (Renderer target in _targetRenderers)
         {
-            if (renderer == null) continue;
-            renderer.SetPropertyBlock(_block);
+            if (target == null) continue;
+            target.SetPropertyBlock(_propertyBlock);
         }
     }
 
     private void OnDisable()
     {
-        ClearAll();
+        ClearPropertyBlocks();
     }
 
     private void OnDestroy()
@@ -103,19 +103,19 @@ public class ProceduralWood : MonoBehaviour
         DestroyTexture();
     }
 
-    void ClearAll()
+    void ClearPropertyBlocks()
     {
-        foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+        foreach (Renderer target in GetComponentsInChildren<Renderer>(true))
         {
-            renderer.SetPropertyBlock(null);
+            target.SetPropertyBlock(null);
         }
     }
 
     void DestroyTexture()
     {
-        if (_texture == null) return;
-        if (Application.isPlaying) Destroy(_texture);
-        else DestroyImmediate(_texture);
-        _texture = null;
+        if (_woodTexture == null) return;
+        if (Application.isPlaying) Destroy(_woodTexture);
+        else DestroyImmediate(_woodTexture);
+        _woodTexture = null;
     }
 }

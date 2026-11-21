@@ -10,24 +10,24 @@ public class EditController : MonoBehaviour
     FrameManager _frameManager;
 
     [SerializeField, Tooltip("拖拽旋转的灵敏度，单位度每像素。")]
-    float _dragSpeed = 0.25f;
+    float _rotateSpeed = 0.25f;
 
-    [SerializeField, Tooltip("滚轮缩放的灵敏度，单位度每格。")]
-    float _fovSpeed = 2f;
+    [SerializeField, Tooltip("滚轮改变视角的步长，单位度每格。")]
+    float _fovStep = 2f;
 
-    [SerializeField, Tooltip("视角上限，单位度。")]
+    [SerializeField, Tooltip("视角的最小值，单位度。")]
     float _minFov = 12f;
 
-    [SerializeField, Tooltip("视角下限，单位度。")]
+    [SerializeField, Tooltip("视角的最大值，单位度。")]
     float _maxFov = 90f;
 
-    Frame _editing;
+    Frame _editingFrame;
 
-    public bool IsEditing => _editing != null;
+    public bool IsEditing => _editingFrame != null;
 
     private void Update()
     {
-        if (_editing == null)
+        if (_editingFrame == null)
         {
             Frame clicked = _frameManager.ConsumeClicked();
             if (clicked != null) Begin(clicked);
@@ -46,17 +46,17 @@ public class EditController : MonoBehaviour
     public void Begin(Frame frame)
     {
         if (frame == null || frame.Diorama == null) return;
-        if (_editing == frame) return;
+        if (_editingFrame == frame) return;
 
-        if (_editing != null) End();
+        if (_editingFrame != null) End();
 
-        _editing = frame;
-        _editing.IsEditing = true;
-        _editing.SetHovered(false);
+        _editingFrame = frame;
+        _editingFrame.IsEditing = true;
+        _editingFrame.SetHovered(false);
 
         _dioramaManager.Show(
             frame.Diorama,
-            frame.Target,
+            frame.TargetTexture,
             frame.SavedPosition,
             frame.SavedRotation,
             frame.SavedFov);
@@ -64,11 +64,11 @@ public class EditController : MonoBehaviour
 
     public void End()
     {
-        if (_editing == null) return;
+        if (_editingFrame == null) return;
 
-        _editing.IsEditing = false;
+        _editingFrame.IsEditing = false;
         _dioramaManager.Hide();
-        _editing = null;
+        _editingFrame = null;
     }
 
     void HandleView()
@@ -76,29 +76,29 @@ public class EditController : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        Vector3 rotation = _editing.SavedRotation;
-        float fov = _editing.SavedFov;
+        Vector3 rotation = _editingFrame.SavedRotation;
+        float fov = _editingFrame.SavedFov;
         bool changed = false;
 
         if (mouse.rightButton.isPressed)
         {
             Vector2 delta = mouse.delta.ReadValue();
-            rotation.x = Mathf.Clamp(rotation.x - delta.y * _dragSpeed, -85f, 85f);
-            rotation.y += delta.x * _dragSpeed;
+            rotation.x = Mathf.Clamp(rotation.x - delta.y * _rotateSpeed, -85f, 85f);
+            rotation.y += delta.x * _rotateSpeed;
             changed = true;
         }
 
         float scroll = mouse.scroll.ReadValue().y;
         if (Mathf.Abs(scroll) > 0.01f)
         {
-            fov = Mathf.Clamp(fov - Mathf.Sign(scroll) * _fovSpeed, _minFov, _maxFov);
+            fov = Mathf.Clamp(fov - Mathf.Sign(scroll) * _fovStep, _minFov, _maxFov);
             changed = true;
         }
 
         if (!changed) return;
 
-        _editing.SavedRotation = rotation;
-        _editing.SavedFov = fov;
-        _dioramaManager.SetView(_editing.SavedPosition, rotation, fov);
+        _editingFrame.SavedRotation = rotation;
+        _editingFrame.SavedFov = fov;
+        _dioramaManager.SetView(_editingFrame.SavedPosition, rotation, fov);
     }
 }

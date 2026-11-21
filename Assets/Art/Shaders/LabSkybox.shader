@@ -1,4 +1,4 @@
-Shader "LateQueen/LabSkybox"
+Shader "LateQueenProblem/LabSkybox"
 {
     Properties
     {

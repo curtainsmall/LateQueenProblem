@@ -4,29 +4,29 @@ using UnityEngine.InputSystem;
 public class CameraEdgePan : MonoBehaviour
 {
     [SerializeField, Tooltip("相机可移动范围的参照物。范围尺寸取其 lossyScale 的 X 与 Z，位置取世界坐标。")]
-    Transform _region;
+    Transform _panRegion;
 
     [SerializeField, Tooltip("用来判断按下时指针是否停在帧上，停在帧上就不拖桌面。")]
-    FrameInteractor _interactor;
+    FrameInteractor _frameInteractor;
 
     [SerializeField, Tooltip("光标进入距屏幕边缘多少像素时开始平移。")]
     float _edgePixels = 40f;
 
     [SerializeField, Tooltip("平移速度，单位是世界单位每秒，与缩放无关。")]
-    float _speed = 1.2f;
+    float _panSpeed = 1.2f;
 
     Camera _camera;
-    bool _dragging;
+    bool _isDragging;
 
     private void Update()
     {
         var mouse = Mouse.current;
-        if (mouse == null || _region == null) return;
+        if (mouse == null || _panRegion == null) return;
 
-        if (mouse.leftButton.wasPressedThisFrame) _dragging = _interactor == null || _interactor.Hovered == null;
-        else if (mouse.leftButton.wasReleasedThisFrame) _dragging = false;
+        if (mouse.leftButton.wasPressedThisFrame) _isDragging = _frameInteractor == null || _frameInteractor.HoveredFrame == null;
+        else if (mouse.leftButton.wasReleasedThisFrame) _isDragging = false;
 
-        if (_dragging) Drag(mouse);
+        if (_isDragging) Drag(mouse);
         else EdgePan(mouse);
     }
 
@@ -61,15 +61,15 @@ public class CameraEdgePan : MonoBehaviour
         if (dx == 0f && dy == 0f) return;
 
         Vector3 position = transform.position;
-        position.x += dx * _speed * Time.deltaTime;
-        position.z += dy * _speed * Time.deltaTime;
+        position.x += dx * _panSpeed * Time.deltaTime;
+        position.z += dy * _panSpeed * Time.deltaTime;
         transform.position = ClampToRegion(position);
     }
 
     Vector3 ClampToRegion(Vector3 position)
     {
-        Vector3 center = _region.position;
-        Vector3 size = _region.lossyScale;
+        Vector3 center = _panRegion.position;
+        Vector3 size = _panRegion.lossyScale;
         float halfX = size.x * 0.5f;
         float halfZ = size.z * 0.5f;
 
@@ -80,10 +80,10 @@ public class CameraEdgePan : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if (_region == null) return;
+        if (_panRegion == null) return;
 
-        Vector3 center = _region.position;
-        Vector3 size = _region.lossyScale;
+        Vector3 center = _panRegion.position;
+        Vector3 size = _panRegion.lossyScale;
         Vector3 drawCenter = new Vector3(center.x, center.y + 0.01f, center.z);
         Vector3 drawSize = new Vector3(size.x, 0.02f, size.z);
 

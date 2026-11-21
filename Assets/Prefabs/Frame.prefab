@@ -47,8 +47,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c9bd73d187a8c8479fb67035023b946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Frame
-  _display: {fileID: 5219976415534098956}
-  _button: {fileID: 3881607006469632023}
+  _displayRenderer: {fileID: 5219976415534098956}
+  _hoverButton: {fileID: 3881607006469632023}
 --- !u!1 &3881607006469632023
 GameObject:
   m_ObjectHideFlags: 0

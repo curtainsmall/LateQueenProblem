@@ -23,15 +23,15 @@ public class TableGrid : MonoBehaviour
     float _lineWidth = 0.008f;
 
     [SerializeField, Tooltip("画高亮外框的子物体，需带网格过滤器与渲染器。")]
-    MeshFilter _highlightFilter;
+    MeshFilter _highlightMeshFilter;
 
     readonly List<Vector3> _vertices = new List<Vector3>();
     readonly List<int> _triangles = new List<int>();
     readonly List<Vector3> _highlightVertices = new List<Vector3>();
     readonly List<int> _highlightTriangles = new List<int>();
-    readonly List<int> _highlighted = new List<int>();
+    readonly List<int> _highlightedSlots = new List<int>();
 
-    MaterialPropertyBlock _block;
+    MaterialPropertyBlock _propertyBlock;
     Mesh _mesh;
     Mesh _highlightMesh;
     Color _highlightColor = Color.white;
@@ -56,7 +56,7 @@ public class TableGrid : MonoBehaviour
         MeshFilter filter = GetComponent<MeshFilter>();
         if (filter != null) filter.sharedMesh = null;
 
-        if (_highlightFilter != null) _highlightFilter.sharedMesh = null;
+        if (_highlightMeshFilter != null) _highlightMeshFilter.sharedMesh = null;
 
         Release(ref _mesh);
         Release(ref _highlightMesh);
@@ -71,10 +71,10 @@ public class TableGrid : MonoBehaviour
         _highlightColor = color;
 
         int slot = row * Mathf.Max(1, _columns) + col;
-        if (!_highlighted.Contains(slot)) _highlighted.Add(slot);
+        if (!_highlightedSlots.Contains(slot)) _highlightedSlots.Add(slot);
     }
 
-    /// <summary>只保留一个高亮槽位（先清空再加），不动网格。</summary>
+    /// <summary>只保留一个高亮槽位（先清空再加）并立即重建。</summary>
     public void SetHighlight(int row, int col, Color color)
     {
         ClearHighlights();
@@ -85,7 +85,7 @@ public class TableGrid : MonoBehaviour
     /// <summary>清掉所有高亮状态，不动网格。</summary>
     public void ClearHighlights()
     {
-        _highlighted.Clear();
+        _highlightedSlots.Clear();
     }
 
     /// <summary>按槽位参数重建全部外框。</summary>
@@ -97,8 +97,8 @@ public class TableGrid : MonoBehaviour
         _vertices.Clear();
         _triangles.Clear();
 
-        Layout layout = BuildLayout();
-        for (int slot = 0; slot < layout.Count; slot++)
+        SlotLayout layout = BuildLayout();
+        for (int slot = 0; slot < layout.SlotCount; slot++)
         {
             AppendSlot(slot, layout, _vertices, _triangles);
         }
@@ -110,57 +110,57 @@ public class TableGrid : MonoBehaviour
     /// <summary>按当前高亮状态重建高亮网格并写入高亮色。</summary>
     public void RebuildHighlight()
     {
-        if (_highlightFilter == null) return;
+        if (_highlightMeshFilter == null) return;
 
         _highlightVertices.Clear();
         _highlightTriangles.Clear();
 
-        Layout layout = BuildLayout();
-        for (int i = 0; i < _highlighted.Count; i++)
+        SlotLayout layout = BuildLayout();
+        for (int i = 0; i < _highlightedSlots.Count; i++)
         {
-            AppendSlot(_highlighted[i], layout, _highlightVertices, _highlightTriangles);
+            AppendSlot(_highlightedSlots[i], layout, _highlightVertices, _highlightTriangles);
         }
 
         _highlightMesh = Write(_highlightMesh, "TableGridHighlight", _highlightVertices, _highlightTriangles);
-        _highlightFilter.sharedMesh = _highlightMesh;
+        _highlightMeshFilter.sharedMesh = _highlightMesh;
 
-        MeshRenderer highlightRenderer = _highlightFilter.GetComponent<MeshRenderer>();
+        MeshRenderer highlightRenderer = _highlightMeshFilter.GetComponent<MeshRenderer>();
         if (highlightRenderer == null) return;
 
-        if (_block == null) _block = new MaterialPropertyBlock();
-        _block.SetColor(BaseColorId, _highlightColor);
-        highlightRenderer.SetPropertyBlock(_block);
+        if (_propertyBlock == null) _propertyBlock = new MaterialPropertyBlock();
+        _propertyBlock.SetColor(BaseColorId, _highlightColor);
+        highlightRenderer.SetPropertyBlock(_propertyBlock);
     }
 
-    Layout BuildLayout()
+    SlotLayout BuildLayout()
     {
-        Layout layout = new Layout
+        SlotLayout layout = new SlotLayout
         {
-            Columns = Mathf.Max(1, _columns),
-            Rows = Mathf.Max(1, _rows),
-            Width = Mathf.Max(0f, _slotSize.x),
-            Depth = Mathf.Max(0f, _slotSize.y)
+            ColumnCount = Mathf.Max(1, _columns),
+            RowCount = Mathf.Max(1, _rows),
+            SlotWidth = Mathf.Max(0f, _slotSize.x),
+            SlotDepth = Mathf.Max(0f, _slotSize.y)
         };
 
-        layout.Line = Mathf.Clamp(_lineWidth, 0f, Mathf.Min(layout.Width, layout.Depth) * 0.5f);
-        layout.StepX = layout.Width + _padding;
-        layout.StepZ = layout.Depth + _padding;
+        layout.LineWidth = Mathf.Clamp(_lineWidth, 0f, Mathf.Min(layout.SlotWidth, layout.SlotDepth) * 0.5f);
+        layout.StepX = layout.SlotWidth + _padding;
+        layout.StepZ = layout.SlotDepth + _padding;
         return layout;
     }
 
-    static void AppendSlot(int slot, Layout layout, List<Vector3> vertices, List<int> triangles)
+    static void AppendSlot(int slot, SlotLayout layout, List<Vector3> vertices, List<int> triangles)
     {
-        if (slot < 0 || slot >= layout.Count || layout.Line <= 0f) return;
+        if (slot < 0 || slot >= layout.SlotCount || layout.LineWidth <= 0f) return;
 
-        int column = slot % layout.Columns;
-        int row = slot / layout.Columns;
-        float x = (column - (layout.Columns - 1) * 0.5f) * layout.StepX;
-        float z = ((layout.Rows - 1) * 0.5f - row) * layout.StepZ;
-        float x0 = x - layout.Width * 0.5f;
-        float x1 = x + layout.Width * 0.5f;
-        float z0 = z - layout.Depth * 0.5f;
-        float z1 = z + layout.Depth * 0.5f;
-        float line = layout.Line;
+        int column = slot % layout.ColumnCount;
+        int row = slot / layout.ColumnCount;
+        float x = (column - (layout.ColumnCount - 1) * 0.5f) * layout.StepX;
+        float z = ((layout.RowCount - 1) * 0.5f - row) * layout.StepZ;
+        float x0 = x - layout.SlotWidth * 0.5f;
+        float x1 = x + layout.SlotWidth * 0.5f;
+        float z0 = z - layout.SlotDepth * 0.5f;
+        float z1 = z + layout.SlotDepth * 0.5f;
+        float line = layout.LineWidth;
 
         AddQuad(x0, x1, z0, z0 + line, vertices, triangles);
         AddQuad(x0, x1, z1 - line, z1, vertices, triangles);
@@ -205,17 +205,16 @@ public class TableGrid : MonoBehaviour
         mesh = null;
     }
 
-    struct Layout
+    struct SlotLayout
     {
-        public int Columns;
-        public int Rows;
-        public float Width;
-        public float Depth;
+        public int ColumnCount;
+        public int RowCount;
+        public float SlotWidth;
+        public float SlotDepth;
         public float StepX;
         public float StepZ;
-        public float Line;
+        public float LineWidth;
 
-        public readonly int Count => Columns * Rows;
+        public readonly int SlotCount => ColumnCount * RowCount;
     }
 }
-
