@@ -14,6 +14,8 @@ public class FrameInteractor : MonoBehaviour
 
     Frame _hovered;
 
+    public Frame Hovered => _hovered;
+
     private void Update()
     {
         var mouse = Mouse.current;
