@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d0bf57a18ab6884f9dff768c7c0fd71, type: 3}
+  m_Name: Cafe
+  m_EditorClassIdentifier: Assembly-CSharp::Diorama
+  _prefabObjects:
+  - _prefab: {fileID: 4940232525248434404, guid: 98633c7e152a7b24fb1ec5230b3432f0, type: 3}
+    _position: {x: 0, y: 0, z: 0}
+    _rotation: {x: 0, y: 0, z: 0}
+    _scale: {x: 1, y: 1, z: 1}
+  _directionalLights:
+  - _direction: {x: 48, y: 28, z: 0}
+    _color: {r: 1, g: 0.98, b: 0.96, a: 1}
+    _intensity: 1.1
+    _shouldShadows: 1
+  _environment:
+    _ambientColor: {r: 0.45, g: 0.45, b: 0.47, a: 1}
+    _skybox: {fileID: 2100000, guid: b8e2fc445c0bde8449065c4c8fb2a2b4, type: 2}
+    _fogEnabled: 0
+    _fogColor: {r: 0, g: 0, b: 0, a: 0}
+    _fogDensity: 0
+  _camera:
+    _position: {x: -1.9100784, y: 1.5365864, z: 1.9146109}
+    _rotation: {x: 357.76538, y: 160.3371, z: 0.0028751611}
+    _fov: 60

@@ -35,6 +35,8 @@ public class Frame : MonoBehaviour
         }
 
         _displayMaterial.SetTexture("_BaseMap", texture != null ? texture : Texture2D.whiteTexture);
+        _displayMaterial.SetTextureScale("_BaseMap", new Vector2(-1f, -1f));
+        _displayMaterial.SetTextureOffset("_BaseMap", new Vector2(1f, 1f));
         _displayRenderer.sharedMaterial = _displayMaterial;
 
         SetHovered(false);
