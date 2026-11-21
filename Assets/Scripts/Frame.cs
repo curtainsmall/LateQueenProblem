@@ -1,52 +1,40 @@
-using System;
 using UnityEngine;
 
 public class Frame : MonoBehaviour
 {
-    Diorama _diorama;
-
     [SerializeField, Tooltip("显示画面的渲染器，会把渲染纹理贴上去。")]
     Renderer _displayRenderer;
 
-    [SerializeField, Tooltip("悬停时才出现的按钮。")]
+    [SerializeField, Tooltip("悬停时才出现的按钮，同时也是射线命中的碰撞体。")]
     GameObject _hoverButton;
 
-    RenderTexture _renderTexture;
     Material _displayMaterial;
 
-    public event Action<Frame> Clicked;
+    public string DioramaName { get; private set; }
+    public RenderTexture Texture { get; private set; }
 
-    public Diorama Diorama => _diorama;
-    public RenderTexture TargetTexture => _renderTexture;
-    public bool IsEditing { get; set; }
-    public Vector3 SavedPosition { get; set; }
-    public Vector3 SavedRotation { get; set; }
-    public float SavedFov { get; set; }
-
-    public void Bind(Diorama diorama)
+    public void Bind(string dioramaName)
     {
-        _diorama = diorama;
-        if (diorama == null) return;
+        DioramaName = dioramaName;
 
-        name = diorama.name;
-        SavedPosition = diorama.CameraPosition;
-        SavedRotation = diorama.CameraRotation;
-        SavedFov = diorama.CameraFov;
+        if (!string.IsNullOrEmpty(dioramaName)) name = dioramaName;
     }
 
-    public void Initialize(int width, int height)
+    /// <summary>把图交给帧显示。传 null 时显示空白相纸。</summary>
+    public void Show(RenderTexture texture)
     {
-        _renderTexture = new RenderTexture(width, height, 16)
-        {
-            name = "FrameTarget",
-            filterMode = FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp
-        };
-        _renderTexture.Create();
+        Texture = texture;
 
-        _displayMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-        _displayMaterial.SetTexture("_BaseMap", _renderTexture);
-        _displayMaterial.SetColor("_BaseColor", Color.white);
+        if (_displayMaterial == null)
+        {
+            _displayMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+            {
+                name = "FrameDisplay"
+            };
+            _displayMaterial.SetColor("_BaseColor", Color.white);
+        }
+
+        _displayMaterial.SetTexture("_BaseMap", texture != null ? texture : Texture2D.whiteTexture);
         _displayRenderer.sharedMaterial = _displayMaterial;
 
         SetHovered(false);
@@ -54,17 +42,11 @@ public class Frame : MonoBehaviour
 
     public void SetHovered(bool hovered)
     {
-        if (_hoverButton != null) _hoverButton.SetActive(hovered && !IsEditing);
-    }
-
-    public void Click()
-    {
-        Clicked?.Invoke(this);
+        if (_hoverButton != null) _hoverButton.SetActive(hovered);
     }
 
     private void OnDestroy()
     {
-        if (_renderTexture != null) _renderTexture.Release();
         if (_displayMaterial != null) Destroy(_displayMaterial);
     }
 }

@@ -9,9 +9,6 @@ public class TableZoom : MonoBehaviour
     [SerializeField, Tooltip("相机可移动范围的参照物，缩放时改写它的尺寸。")]
     Transform _panRegion;
 
-    [SerializeField, Tooltip("编辑帧视角时接管滚轮的控制者，此时不缩放桌面。")]
-    EditController _editController;
-
     [SerializeField, Tooltip("缩到最近时的正交尺寸，0.36 时一帧正好占画面宽高各一半。")]
     float _minSize = 0.36f;
 
@@ -32,7 +29,6 @@ public class TableZoom : MonoBehaviour
     private void Update()
     {
         if (_camera == null) return;
-        if (_editController != null && _editController.IsEditing) return;
 
         var mouse = Mouse.current;
         if (mouse == null) return;

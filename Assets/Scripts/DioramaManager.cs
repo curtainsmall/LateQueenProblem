@@ -4,61 +4,164 @@ using UnityEngine.Rendering;
 
 public class DioramaManager : MonoBehaviour
 {
+    const string DioramaFolder = "Dioramas";
+
     [SerializeField, Tooltip("渲染帧的相机。位置与朝向都由 diorama 决定。")]
     Camera _renderCamera;
 
+    readonly Dictionary<string, Diorama> _resolved = new Dictionary<string, Diorama>();
+    readonly List<CachedCapture> _captures = new List<CachedCapture>();
     readonly List<GameObject> _spawned = new List<GameObject>();
-    RenderTexture _targetTexture;
-    Color _previousAmbient;
 
-    public void Show(Diorama diorama, RenderTexture target, Vector3 position, Vector3 rotation, float fov)
+    /// <summary>
+    /// 按名字取这个 diorama 的图。首次请求时同步渲染并缓存，之后按名字 + 尺寸复用。
+    /// 渲染期间临时替换环境光、天空盒与雾，渲完立刻还原。
+    /// </summary>
+    public RenderTexture Capture(string dioramaName, int width, int height)
     {
-        if (diorama == null || target == null || _renderCamera == null) return;
+        Diorama diorama = Resolve(dioramaName);
+        if (diorama == null || _renderCamera == null) return null;
 
-        Hide();
+        width = Mathf.Max(1, width);
+        height = Mathf.Max(1, height);
 
-        _previousAmbient = RenderSettings.ambientLight;
-        _targetTexture = target;
+        for (int i = 0; i < _captures.Count; i++)
+        {
+            CachedCapture cached = _captures[i];
+            if (cached.Name == dioramaName && cached.Width == width && cached.Height == height) return cached.Texture;
+        }
 
+        var texture = new RenderTexture(width, height, 16)
+        {
+            name = "DioramaCapture",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp
+        };
+        texture.Create();
+
+        Render(diorama, texture);
+
+        _captures.Add(new CachedCapture
+        {
+            Name = dioramaName,
+            Width = width,
+            Height = height,
+            Texture = texture
+        });
+
+        return texture;
+    }
+
+    public void Invalidate(string dioramaName)
+    {
+        if (string.IsNullOrEmpty(dioramaName)) return;
+
+        for (int i = _captures.Count - 1; i >= 0; i--)
+        {
+            if (_captures[i].Name != dioramaName) continue;
+
+            Release(_captures[i].Texture);
+            _captures.RemoveAt(i);
+        }
+    }
+
+    Diorama Resolve(string dioramaName)
+    {
+        if (string.IsNullOrEmpty(dioramaName)) return null;
+
+        if (_resolved.TryGetValue(dioramaName, out Diorama cached)) return cached;
+
+        Diorama loaded = Resources.Load<Diorama>(DioramaFolder + "/" + dioramaName);
+        if (loaded == null) return null;
+
+        _resolved[dioramaName] = loaded;
+        return loaded;
+    }
+
+    public void ReleaseAll()
+    {
+        foreach (CachedCapture cached in _captures) Release(cached.Texture);
+        _captures.Clear();
+    }
+
+    private void OnDestroy()
+    {
+        ReleaseAll();
+    }
+
+    void Render(Diorama diorama, RenderTexture target)
+    {
+        SceneGlobals previous = CaptureGlobals();
+
+        ApplyGlobals(diorama);
         BuildLights(diorama);
         BuildObjects(diorama);
 
+        _renderCamera.transform.localPosition = diorama.CameraPosition;
+        _renderCamera.transform.localRotation = Quaternion.Euler(diorama.CameraRotation);
+        _renderCamera.orthographic = false;
+        _renderCamera.fieldOfView = Mathf.Clamp(diorama.CameraFov, 5f, 120f);
+
+        bool wasEnabled = _renderCamera.enabled;
+        _renderCamera.enabled = false;
+        _renderCamera.targetTexture = target;
+        _renderCamera.Render();
+        _renderCamera.targetTexture = null;
+        _renderCamera.enabled = wasEnabled;
+
+        ClearSpawned();
+        RestoreGlobals(previous);
+    }
+
+    SceneGlobals CaptureGlobals()
+    {
+        return new SceneGlobals
+        {
+            AmbientMode = RenderSettings.ambientMode,
+            AmbientLight = RenderSettings.ambientLight,
+            Skybox = RenderSettings.skybox,
+            Fog = RenderSettings.fog,
+            FogColor = RenderSettings.fogColor,
+            FogDensity = RenderSettings.fogDensity,
+            FogMode = RenderSettings.fogMode
+        };
+    }
+
+    void ApplyGlobals(Diorama diorama)
+    {
         RenderSettings.ambientMode = AmbientMode.Flat;
         RenderSettings.ambientLight = diorama.AmbientColor;
 
-        SetView(position, rotation, fov);
+        if (diorama.Skybox != null) RenderSettings.skybox = diorama.Skybox;
 
-        _renderCamera.targetTexture = _targetTexture;
-        _renderCamera.enabled = true;
+        RenderSettings.fog = diorama.FogEnabled;
+        RenderSettings.fogMode = FogMode.Exponential;
+        RenderSettings.fogColor = diorama.FogColor;
+        RenderSettings.fogDensity = diorama.FogDensity;
     }
 
-    public void Hide()
+    void RestoreGlobals(SceneGlobals globals)
     {
-        if (_targetTexture == null) return;
+        RenderSettings.ambientMode = globals.AmbientMode;
+        RenderSettings.ambientLight = globals.AmbientLight;
+        RenderSettings.skybox = globals.Skybox;
 
-        _renderCamera.enabled = false;
-        _renderCamera.targetTexture = null;
-        _targetTexture = null;
-
-        ClearSpawned();
-        RenderSettings.ambientLight = _previousAmbient;
-    }
-
-    public void SetView(Vector3 position, Vector3 rotation, float fov)
-    {
-        _renderCamera.transform.localPosition = position;
-        _renderCamera.transform.localRotation = Quaternion.Euler(rotation);
-        _renderCamera.orthographic = false;
-        _renderCamera.fieldOfView = Mathf.Clamp(fov, 5f, 120f);
+        RenderSettings.fog = globals.Fog;
+        RenderSettings.fogMode = globals.FogMode;
+        RenderSettings.fogColor = globals.FogColor;
+        RenderSettings.fogDensity = globals.FogDensity;
     }
 
     void BuildLights(Diorama diorama)
     {
         if (diorama.DirectionalLights == null) return;
 
+        int layer = gameObject.layer;
+
         foreach (DioramaDirectionalLight entry in diorama.DirectionalLights)
         {
             var go = new GameObject("Light");
+            go.layer = layer;
             go.transform.SetParent(transform, false);
             go.transform.localRotation = Quaternion.Euler(entry.Direction);
 
@@ -67,6 +170,7 @@ public class DioramaManager : MonoBehaviour
             light.color = entry.Color;
             light.intensity = entry.Intensity;
             light.shadows = entry.ShouldShadows ? LightShadows.Hard : LightShadows.None;
+            light.cullingMask = 1 << layer;
 
             _spawned.Add(go);
         }
@@ -104,8 +208,40 @@ public class DioramaManager : MonoBehaviour
     {
         foreach (GameObject go in _spawned)
         {
-            if (go != null) Destroy(go);
+            if (go == null) continue;
+
+            if (Application.isPlaying) Destroy(go);
+            else DestroyImmediate(go);
         }
         _spawned.Clear();
+    }
+
+    static void Release(RenderTexture texture)
+    {
+        if (texture == null) return;
+
+        texture.Release();
+
+        if (Application.isPlaying) Destroy(texture);
+        else DestroyImmediate(texture);
+    }
+
+    struct CachedCapture
+    {
+        public string Name;
+        public int Width;
+        public int Height;
+        public RenderTexture Texture;
+    }
+
+    struct SceneGlobals
+    {
+        public AmbientMode AmbientMode;
+        public Color AmbientLight;
+        public Material Skybox;
+        public bool Fog;
+        public Color FogColor;
+        public float FogDensity;
+        public FogMode FogMode;
     }
 }

@@ -48,6 +48,10 @@ public class Diorama : ScriptableObject
     [SerializeField, Tooltip("这个 diorama 摆放的物件。每项必须是预制体。")] DioramaPrefabObject[] _prefabObjects;
     [SerializeField, Tooltip("这个 diorama 的方向光。")] DioramaDirectionalLight[] _directionalLights;
     [SerializeField, Tooltip("这个 diorama 的环境光颜色。")] Color _ambientColor = new Color(0.35f, 0.35f, 0.38f, 1f);
+    [SerializeField, Tooltip("这个 diorama 的天空盒。留空时沿用场景当前的天空盒。")] Material _skybox;
+    [SerializeField, Tooltip("是否开启雾。")] bool _fogEnabled;
+    [SerializeField, Tooltip("雾的颜色。")] Color _fogColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+    [SerializeField, Tooltip("雾的浓度。")] float _fogDensity = 0.02f;
 
     [SerializeField, Tooltip("相机相对工作室的位置。")] Vector3 _cameraPosition = new Vector3(0f, 2f, -4f);
     [SerializeField, Tooltip("相机的欧拉角朝向。")] Vector3 _cameraRotation = new Vector3(18f, 25f, 0f);
@@ -56,6 +60,10 @@ public class Diorama : ScriptableObject
     public DioramaPrefabObject[] PrefabObjects => _prefabObjects;
     public DioramaDirectionalLight[] DirectionalLights => _directionalLights;
     public Color AmbientColor => _ambientColor;
+    public Material Skybox => _skybox;
+    public bool FogEnabled => _fogEnabled;
+    public Color FogColor => _fogColor;
+    public float FogDensity => _fogDensity;
     public Vector3 CameraPosition => _cameraPosition;
     public Vector3 CameraRotation => _cameraRotation;
     public float CameraFov => _cameraFov;
