@@ -2222,8 +2222,8 @@ MonoBehaviour:
   _frameSize: {x: 0.64, y: 0.36}
   _padding: 0.06
   _frameHeight: 0.79
-  _textureWidth: 512
-  _textureHeight: 288
+  _textureWidth: 480
+  _textureHeight: 256
 --- !u!114 &1662807799
 MonoBehaviour:
   m_ObjectHideFlags: 0
