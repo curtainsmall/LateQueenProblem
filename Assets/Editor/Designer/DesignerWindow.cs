@@ -40,8 +40,12 @@ public class DesignerWindow : EditorWindow
     string _status = "就绪";
     bool _showTopologies;
 
-    int _randomMinCards = 3;
-    int _randomMaxCards = 6;
+    bool _foldSituation = true;
+    bool _foldCards = true;
+    bool _foldClasses = true;
+    bool _foldTest = true;
+
+    int _randomTotalCards = 12;
     int _randomFixedCount = 1;
 
     [MenuItem("LateQueenProblem/Designer")]
@@ -107,12 +111,108 @@ public class DesignerWindow : EditorWindow
     void DrawToolbar()
     {
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-        if (GUILayout.Button("Save", EditorStyles.toolbarButton, GUILayout.Width(60f))) SaveWorkspace();
-        if (GUILayout.Button("Load", EditorStyles.toolbarButton, GUILayout.Width(60f))) LoadWorkspace();
-        if (GUILayout.Button("Export", EditorStyles.toolbarButton, GUILayout.Width(70f))) ExportLevels();
+
+        if (GUILayout.Button("文件", EditorStyles.toolbarDropDown, GUILayout.Width(60f)))
+        {
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("加载…"), false, OpenLoadDialog);
+            menu.AddItem(new GUIContent("保存…"), false, OpenSaveDialog);
+            menu.AddSeparator(string.Empty);
+            menu.AddItem(new GUIContent("导出关卡…"), false, OpenExportDialog);
+            menu.DropDown(GUILayoutUtility.GetLastRect());
+        }
+
+        GUI.enabled = Selected != null;
+        if (GUILayout.Button("生成", EditorStyles.toolbarButton, GUILayout.Width(60f))) OpenRandomDialog();
+        GUI.enabled = true;
+
         GUILayout.FlexibleSpace();
         GUILayout.Label(_status, EditorStyles.miniLabel);
+
         EditorGUILayout.EndHorizontal();
+    }
+
+    void OpenSaveDialog()
+    {
+        DesignerDialog.OpenPath("保存工作区", "写入工程根目录下的 JSON，不进 Assets。", _workspacePath, DoSave);
+    }
+
+    void OpenLoadDialog()
+    {
+        DesignerDialog.OpenPath("加载工作区", "读取工程根目录下的 JSON。", _workspacePath, DoLoad);
+    }
+
+    void OpenExportDialog()
+    {
+        DesignerDialog.OpenPath("导出关卡", "导出为 Assets 下的 LevelSet 资产（覆盖写入）。", _exportPath, DoExport);
+    }
+
+    void OpenRandomDialog()
+    {
+        DesignerDialog.OpenRandom("随机生成情况", _randomTotalCards, _randomFixedCount, DoRandom);
+    }
+
+    void DoSave(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        _workspacePath = path;
+        DesignerIO.Save(_workspace, _workspacePath);
+        _status = "已保存：" + _workspacePath;
+        Repaint();
+    }
+
+    void DoLoad(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        _workspacePath = path;
+        DesignerWorkspace loaded = DesignerIO.Load(_workspacePath, out string error);
+
+        if (loaded == null)
+        {
+            _status = "加载失败：" + error;
+            return;
+        }
+
+        _workspace = loaded;
+        _selectedIndex = -1;
+        _selectedCardId = null;
+        _result = null;
+        _viewFocused = false;
+        _status = "已加载：" + _workspacePath;
+        Repaint();
+    }
+
+    void DoExport(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        _exportPath = path;
+        bool ok = DesignerIO.ExportAssets(_workspace, _exportPath, out string error);
+
+        _status = ok
+            ? "已导出 " + _workspace.levelOrder.Count + " 个关卡：" + _exportPath
+            : "导出失败：" + error;
+
+        Repaint();
+    }
+
+    void DoRandom(int totalCards, int fixedCards)
+    {
+        DesignerSituation situation = Selected;
+        if (situation == null) return;
+
+        _randomTotalCards = totalCards;
+        _randomFixedCount = fixedCards;
+
+        FillRandom(situation);
+
+        _selectedCardId = null;
+        _result = null;
+        _viewFocused = false;
+        _status = "已覆盖当前情况";
+        Repaint();
     }
 
     void DrawLeftColumn(float width)
@@ -163,27 +263,6 @@ public class DesignerWindow : EditorWindow
             if (GUILayout.Button("×", GUILayout.Width(22f))) _workspace.levelOrder.RemoveAt(i);
             EditorGUILayout.EndHorizontal();
         }
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("随机生成", EditorStyles.boldLabel);
-        _randomMinCards = EditorGUILayout.IntField("最少卡数", _randomMinCards);
-        _randomMaxCards = EditorGUILayout.IntField("最多卡数", _randomMaxCards);
-        _randomFixedCount = EditorGUILayout.IntField("固定卡数", _randomFixedCount);
-
-        if (GUILayout.Button("生成新情况"))
-        {
-            _workspace.situations.Add(RandomSituation());
-            _selectedIndex = _workspace.situations.Count - 1;
-            _selectedCardId = null;
-            _result = null;
-            _viewFocused = false;
-            _status = "已随机生成";
-        }
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("路径", EditorStyles.boldLabel);
-        _workspacePath = EditorGUILayout.TextField("工作区", _workspacePath);
-        _exportPath = EditorGUILayout.TextField("导出", _exportPath);
 
         EditorGUILayout.EndScrollView();
         EditorGUILayout.EndVertical();
@@ -533,10 +612,23 @@ public class DesignerWindow : EditorWindow
             return;
         }
 
-        DrawSituationHeader(situation);
-        DrawCardProperties(situation);
-        DrawClassTable(situation);
-        DrawResultPanel(situation);
+        _foldSituation = EditorGUILayout.Foldout(_foldSituation, "情况", true);
+        if (_foldSituation) DrawSituationHeader(situation);
+
+        EditorGUILayout.Space();
+
+        _foldCards = EditorGUILayout.Foldout(_foldCards, "卡", true);
+        if (_foldCards) DrawCardProperties(situation);
+
+        EditorGUILayout.Space();
+
+        _foldClasses = EditorGUILayout.Foldout(_foldClasses, "类", true);
+        if (_foldClasses) DrawClassTable(situation);
+
+        EditorGUILayout.Space();
+
+        _foldTest = EditorGUILayout.Foldout(_foldTest, "统计", true);
+        if (_foldTest) DrawResultPanel(situation);
 
         EditorGUILayout.EndScrollView();
         EditorGUILayout.EndVertical();
@@ -544,8 +636,6 @@ public class DesignerWindow : EditorWindow
 
     void DrawSituationHeader(DesignerSituation situation)
     {
-        EditorGUILayout.LabelField("情况", EditorStyles.boldLabel);
-
         EditorGUILayout.BeginHorizontal();
         situation.id = EditorGUILayout.TextField("ID", situation.id);
         if (GUILayout.Button("加入", GUILayout.Width(50f)))
@@ -572,9 +662,6 @@ public class DesignerWindow : EditorWindow
     void DrawCardProperties(DesignerSituation situation)
     {
         DesignerCard card = SelectedCard;
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("卡属性", EditorStyles.boldLabel);
 
         if (card == null)
         {
@@ -604,9 +691,6 @@ public class DesignerWindow : EditorWindow
 
     void DrawClassTable(DesignerSituation situation)
     {
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField("类（自动生成，只能合并）", EditorStyles.boldLabel);
-
         if (situation.classes.Count == 0)
         {
             EditorGUILayout.HelpBox("当前没有相邻卡，因此没有类。", MessageType.Info);
@@ -642,7 +726,6 @@ public class DesignerWindow : EditorWindow
 
     void DrawResultPanel(DesignerSituation situation)
     {
-        EditorGUILayout.Space();
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("Test", GUILayout.Height(24f))) RunTest(situation);
         _showTopologies = EditorGUILayout.ToggleLeft("显示拓扑", _showTopologies, GUILayout.Width(90f));
@@ -737,91 +820,393 @@ public class DesignerWindow : EditorWindow
         return id;
     }
 
-    DesignerSituation RandomSituation()
+    // 生成不规则的填字布局：每次挑一张已有的卡，穿过它放一条垂直方向的新线。
+    // 新线长度 >= 4，且与同方向的已有线至少隔一行/列，因此形成不规则的交叉字。
+    void FillRandom(DesignerSituation situation)
     {
-        var situation = new DesignerSituation { id = NextId() };
         situation.EnsureShape();
 
-        int maxCards = Mathf.Min(Mathf.Max(1, _randomMaxCards), situation.rows * situation.cols);
-        int minCards = Mathf.Clamp(_randomMinCards, 1, maxCards);
-        int cardCount = Random.Range(minCards, maxCards + 1);
+        situation.cards.Clear();
+        situation.classes.Clear();
+        situation.edges.Clear();
 
-        int row = Random.Range(0, situation.rows);
-        int col = Random.Range(0, situation.cols);
-        situation.cards.Add(new DesignerCard { id = "c0", text = "text_0", row = row, col = col });
+        int rows = situation.rows;
+        int cols = situation.cols;
+        int maxCards = Mathf.Min(Mathf.Max(4, _randomTotalCards), rows * cols);
+        int minCards = maxCards;
+        int target = maxCards;
 
-        var frontier = new List<Vector2Int>();
+        List<Vector2Int> cells = null;
 
-        for (int i = 1; i < cardCount; i++)
+        for (int attempt = 0; attempt < 24; attempt++)
         {
-            frontier.Clear();
+            List<Vector2Int> candidate = BuildRandomLayout(rows, cols, target, maxCards);
 
-            for (int c = 0; c < situation.cards.Count; c++)
-            {
-                DesignerCard card = situation.cards[c];
-                AddFrontier(situation, frontier, card.row - 1, card.col);
-                AddFrontier(situation, frontier, card.row + 1, card.col);
-                AddFrontier(situation, frontier, card.row, card.col - 1);
-                AddFrontier(situation, frontier, card.row, card.col + 1);
-            }
-
-            if (frontier.Count == 0) break;
-
-            Vector2Int cell = frontier[Random.Range(0, frontier.Count)];
-            situation.cards.Add(new DesignerCard { id = "c" + i, text = "text_" + i, row = cell.x, col = cell.y });
+            if (cells == null || candidate.Count > cells.Count) cells = candidate;
+            if (cells.Count >= minCards) break;
         }
 
-        for (int i = 0; i < situation.cards.Count && i < _randomFixedCount; i++)
+        var occupied = new bool[rows * cols];
+
+        for (int i = 0; i < cells.Count; i++)
         {
-            situation.cards[i].isFixed = true;
+            occupied[cells[i].y * cols + cells[i].x] = true;
+        }
+
+        EnsureConnected(occupied, cells, cols, rows);
+
+        // 固定卡：生成后按行优先排序，再等间距挑选。
+        cells.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
+
+        int fixedCount = Mathf.Clamp(_randomFixedCount, 0, cells.Count);
+        var fixedIndices = new HashSet<int>();
+
+        for (int i = 0; i < fixedCount; i++)
+        {
+            int index = Mathf.Clamp(Mathf.RoundToInt((i + 0.5f) * cells.Count / fixedCount), 0, cells.Count - 1);
+            fixedIndices.Add(index);
+        }
+
+        for (int i = 0; i < cells.Count; i++)
+        {
+            situation.cards.Add(new DesignerCard
+            {
+                id = "c" + i,
+                text = "text_" + i,
+                row = cells[i].y,
+                col = cells[i].x,
+                isFixed = fixedIndices.Contains(i)
+            });
         }
 
         situation.RebuildEdges();
-        return situation;
     }
 
-    static void AddFrontier(DesignerSituation situation, List<Vector2Int> frontier, int row, int col)
+    List<Vector2Int> BuildRandomLayout(int rows, int cols, int target, int maxCards)
     {
-        if (row < 0 || row >= situation.rows || col < 0 || col >= situation.cols) return;
-        if (situation.IsOccupied(row, col)) return;
+        var occupied = new bool[rows * cols];
+        var cells = new List<Vector2Int>();
+        var rowLines = new List<int>();
+        var columnLines = new List<int>();
 
-        var candidate = new Vector2Int(row, col);
-        if (!frontier.Contains(candidate)) frontier.Add(candidate);
-    }
-    void SaveWorkspace()
-    {
-        DesignerIO.Save(_workspace, _workspacePath);
-        _status = "已保存：" + _workspacePath;
-        Repaint();
-    }
+        int firstRow = Random.Range(0, rows);
+        int firstLength = Mathf.Min(Random.Range(4, 9), cols);
+        int firstLeft = Random.Range(0, cols - firstLength + 1);
 
-    void LoadWorkspace()
-    {
-        DesignerWorkspace loaded = DesignerIO.Load(_workspacePath, out string error);
-
-        if (loaded == null)
+        for (int i = 0; i < firstLength; i++)
         {
-            _status = "加载失败：" + error;
-            return;
+            Place(new Vector2Int(firstLeft + i, firstRow), cols, occupied, cells);
         }
 
-        _workspace = loaded;
-        _selectedIndex = -1;
-        _selectedCardId = null;
-        _result = null;
-        _viewFocused = false;
-        _status = "已加载：" + _workspacePath;
-        Repaint();
+        rowLines.Add(firstRow);
+
+        int guard = 0;
+
+        while (cells.Count < target && guard++ < 2000)
+        {
+            bool placed = false;
+
+            for (int attempt = 0; attempt < 12 && !placed; attempt++)
+            {
+                Vector2Int anchor = cells[Random.Range(0, cells.Count)];
+                bool horizontal = Random.value < 0.5f;
+
+                placed = TryPlaceWord(horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards) ||
+                         TryPlaceWord(!horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards);
+            }
+
+            if (!placed)
+            {
+                for (int i = 0; i < cells.Count && !placed; i++)
+                {
+                    Vector2Int anchor = cells[i];
+
+                    placed = TryPlaceWord(true, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards) ||
+                             TryPlaceWord(false, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards);
+                }
+            }
+
+            if (!placed) break;
+        }
+
+        return cells;
+    }
+    static bool HasTwoByTwo(bool[] occupied, int cols, int rows)
+    {
+        for (int y = 0; y < rows - 1; y++)
+        {
+            for (int x = 0; x < cols - 1; x++)
+            {
+                int index = y * cols + x;
+                if (!occupied[index]) continue;
+                if (!occupied[index + 1]) continue;
+                if (!occupied[index + cols]) continue;
+                if (!occupied[index + cols + 1]) continue;
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    void ExportLevels()
+    // 以 anchor 为交叉点放一条线。
+    bool TryPlaceWord(bool horizontal, Vector2Int anchor, bool[] occupied, List<Vector2Int> cells,
+        List<int> rowLines, List<int> columnLines, int cols, int rows, int maxCards)
     {
-        bool ok = DesignerIO.ExportAssets(_workspace, _exportPath, out string error);
+        List<int> usedLines = horizontal ? rowLines : columnLines;
+        List<int> otherLines = horizontal ? columnLines : rowLines;
 
-        _status = ok
-            ? "已导出 " + _workspace.levelOrder.Count + " 个关卡：" + _exportPath
-            : "导出失败：" + error;
+        int line = horizontal ? anchor.y : anchor.x;
+        int limit = horizontal ? cols : rows;
+        int cross = horizontal ? anchor.x : anchor.y;
 
-        Repaint();
+        for (int i = 0; i < usedLines.Count; i++)
+        {
+            if (usedLines[i] == line) return false;
+        }
+
+        // 必须真的穿过另一方向的线
+        bool crosses = false;
+        for (int i = 0; i < otherLines.Count; i++)
+        {
+            int other = horizontal ? anchor.x : anchor.y;
+            if (otherLines[i] == other) crosses = true;
+        }
+
+        if (!crosses) return false;
+
+        int length = Mathf.Min(Random.Range(4, 9), limit);
+        int start = Mathf.Clamp(cross - Random.Range(0, length), 0, limit - length);
+
+        for (int i = 0; i < length; i++)
+        {
+            int position = start + i;
+            if (position == cross) continue;
+
+            int x = horizontal ? position : line;
+            int y = horizontal ? line : position;
+
+            if (occupied[y * cols + x]) return false;
+        }
+
+        if (cells.Count + length - 1 > maxCards) return false;
+
+        for (int i = 0; i < length; i++)
+        {
+            int position = start + i;
+            int x = horizontal ? position : line;
+            int y = horizontal ? line : position;
+            Place(new Vector2Int(x, y), cols, occupied, cells);
+        }
+
+        // 只禁止 2×2 实心块：端部相接、贴边都不算乱，只有"实心矩形"才算乱。
+        if (HasTwoByTwo(occupied, cols, rows))
+        {
+            for (int i = 0; i < length; i++)
+            {
+                int position = start + i;
+                if (position == cross) continue;
+
+                int x = horizontal ? position : line;
+                int y = horizontal ? line : position;
+
+                int index = y * cols + x;
+                occupied[index] = false;
+                cells.Remove(new Vector2Int(x, y));
+            }
+
+            return false;
+        }
+
+        usedLines.Add(line);
+        return true;
+    }
+    // 在横脊上找一段空闲的 3 列，向上或向下长出一根齿；成功返回 true。
+    bool TryAddTooth(bool[] occupied, List<Vector2Int> cells, int spineTop, int spineHeight,
+        int spineLeft, int spineWidth, int cols, int rows, int height, int maxCards)
+    {
+        if (height <= 0) return false;
+        if (cells.Count + height * 3 > maxCards) return false;
+
+        for (int attempt = 0; attempt < 24; attempt++)
+        {
+            int start = Random.Range(spineLeft, spineLeft + spineWidth - 2);
+
+            bool blocked = false;
+
+            for (int x = start; x < start + 3 && !blocked; x++)
+            {
+                for (int y = 0; y < rows; y++)
+                {
+                    if (y >= spineTop && y < spineTop + spineHeight) continue;
+                    if (occupied[y * cols + x])
+                    {
+                        blocked = true;
+                        break;
+                    }
+                }
+            }
+
+            if (blocked) continue;
+
+            bool down = Random.value < 0.5f;
+            int room = down ? rows - (spineTop + spineHeight) : spineTop;
+            if (room < height) continue;
+
+            for (int i = 0; i < height; i++)
+            {
+                int y = down ? spineTop + spineHeight + i : spineTop - 1 - i;
+
+                for (int x = start; x < start + 3; x++)
+                {
+                    Place(new Vector2Int(x, y), cols, occupied, cells);
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+    // 兜底：3×3 方块，保证每条线长度都是 3 且连通。
+    static void BuildFallbackBlock(bool[] occupied, List<Vector2Int> cells, int cols, int rows)
+    {
+        int top = Random.Range(0, Mathf.Max(1, rows - 2));
+        int left = Random.Range(0, Mathf.Max(1, cols - 2));
+
+        for (int y = top; y < Mathf.Min(top + 3, rows); y++)
+        {
+            for (int x = left; x < Mathf.Min(left + 3, cols); x++)
+            {
+                Place(new Vector2Int(x, y), cols, occupied, cells);
+            }
+        }
+    }
+    // 兜底：把断开的连通块用 L 形路径接到第一块上。
+    void EnsureConnected(bool[] occupied, List<Vector2Int> cells, int cols, int rows)
+    {
+        int guard = 0;
+
+        while (guard++ < 200)
+        {
+            List<List<Vector2Int>> components = Components(occupied, cols, rows);
+            if (components.Count <= 1) return;
+
+            Vector2Int from = components[0][0];
+            Vector2Int to = components[1][0];
+
+            for (int x = Mathf.Min(from.x, to.x); x <= Mathf.Max(from.x, to.x); x++)
+            {
+                Place(new Vector2Int(x, from.y), cols, occupied, cells);
+            }
+
+            for (int y = Mathf.Min(from.y, to.y); y <= Mathf.Max(from.y, to.y); y++)
+            {
+                Place(new Vector2Int(to.x, y), cols, occupied, cells);
+            }
+        }
+    }
+
+    static List<List<Vector2Int>> Components(bool[] occupied, int cols, int rows)
+    {
+        var components = new List<List<Vector2Int>>();
+        var seen = new bool[occupied.Length];
+
+        for (int index = 0; index < occupied.Length; index++)
+        {
+            if (!occupied[index] || seen[index]) continue;
+
+            var component = new List<Vector2Int>();
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(new Vector2Int(index % cols, index / cols));
+            seen[index] = true;
+
+            while (queue.Count > 0)
+            {
+                Vector2Int cell = queue.Dequeue();
+                component.Add(cell);
+
+                PushComponentCell(cell.x + 1, cell.y, cols, rows, occupied, seen, queue);
+                PushComponentCell(cell.x - 1, cell.y, cols, rows, occupied, seen, queue);
+                PushComponentCell(cell.x, cell.y + 1, cols, rows, occupied, seen, queue);
+                PushComponentCell(cell.x, cell.y - 1, cols, rows, occupied, seen, queue);
+            }
+
+            components.Add(component);
+        }
+
+        return components;
+    }
+
+    static void PushComponentCell(int x, int y, int cols, int rows, bool[] occupied, bool[] seen, Queue<Vector2Int> queue)
+    {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+
+        int index = y * cols + x;
+        if (!occupied[index] || seen[index]) return;
+
+        seen[index] = true;
+        queue.Enqueue(new Vector2Int(x, y));
+    }
+    static bool RowHasRun(List<int> lines, int value)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i] == value) return true;
+        }
+
+        return false;
+    }
+
+    // 在 count 个位置里挑 wanted 个，任意两个的间距不小于 gap。
+    static List<int> PickSpaced(int count, int wanted, int gap)
+    {
+        var picked = new List<int>();
+        int attempts = 0;
+
+        while (picked.Count < wanted && attempts++ < 500)
+        {
+            int candidate = Random.Range(0, count);
+            bool ok = true;
+
+            for (int i = 0; i < picked.Count; i++)
+            {
+                if (Mathf.Abs(picked[i] - candidate) < gap)
+                {
+                    ok = false;
+                    break;
+                }
+            }
+
+            if (ok) picked.Add(candidate);
+        }
+
+        picked.Sort();
+        return picked;
+    }
+
+    static void Place(Vector2Int cell, int cols, bool[] occupied, List<Vector2Int> cells)
+    {
+        int index = cell.y * cols + cell.x;
+        if (index < 0 || index >= occupied.Length || occupied[index]) return;
+
+        occupied[index] = true;
+        cells.Add(cell);
+    }
+
+    static bool Inside(Vector2Int cell, int cols, int rows)
+    {
+        return cell.x >= 0 && cell.x < cols && cell.y >= 0 && cell.y < rows;
+    }
+
+    static bool IsOccupied(Vector2Int cell, int cols, bool[] occupied)
+    {
+        if (cell.x < 0 || cell.y < 0) return false;
+
+        int index = cell.y * cols + cell.x;
+        if (index < 0 || index >= occupied.Length) return false;
+
+        return occupied[index];
     }
 }
