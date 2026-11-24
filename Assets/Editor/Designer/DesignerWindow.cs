@@ -289,26 +289,6 @@ public class DesignerWindow : EditorWindow
     }
 
     // 画布：高度等于内容区高度，宽度按网格行列比换算，放不下时按内容区宽度收缩，始终居中。
-    static Rect CanvasRect(DesignerSituation situation, Rect area)
-    {
-        float aspect = situation.cols / (float)Mathf.Max(1, situation.rows);
-
-        float height = area.height;
-        float width = height * aspect;
-
-        if (width > area.width)
-        {
-            width = area.width;
-            height = width / aspect;
-        }
-
-        return new Rect(
-            area.x + (area.width - width) * 0.5f,
-            area.y + (area.height - height) * 0.5f,
-            width,
-            height);
-    }
-
     void DrawCanvas(DesignerSituation display, Rect view)
     {
         EditorGUI.DrawRect(view, new Color(0.16f, 0.16f, 0.17f, 1f));
@@ -364,11 +344,6 @@ public class DesignerWindow : EditorWindow
         float widthZoom = view.width / (Mathf.Max(1, situation.cols) + 0.5f) / BaseCellSize;
         float heightZoom = view.height / (Mathf.Max(1, situation.rows) + 0.5f) / BaseCellSize;
         return Mathf.Max(0.01f, Mathf.Min(widthZoom, heightZoom));
-    }
-
-    static float MaxZoom(Rect view)
-    {
-        return Mathf.Max(0.01f, Mathf.Min(view.width, view.height) / (3f * BaseCellSize));
     }
 
     static Vector2 CenterPan(DesignerSituation situation, Rect view, float cell)
@@ -832,18 +807,16 @@ public class DesignerWindow : EditorWindow
 
         int rows = situation.rows;
         int cols = situation.cols;
-        int maxCards = Mathf.Min(Mathf.Max(4, _randomTotalCards), rows * cols);
-        int minCards = maxCards;
-        int target = maxCards;
+        int targetCards = Mathf.Clamp(_randomTotalCards, 4, rows * cols);
 
         List<Vector2Int> cells = null;
 
         for (int attempt = 0; attempt < 24; attempt++)
         {
-            List<Vector2Int> candidate = BuildRandomLayout(rows, cols, target, maxCards);
+            List<Vector2Int> candidate = BuildRandomLayout(rows, cols, targetCards);
 
             if (cells == null || candidate.Count > cells.Count) cells = candidate;
-            if (cells.Count >= minCards) break;
+            if (cells.Count >= targetCards) break;
         }
 
         var occupied = new bool[rows * cols];
@@ -853,7 +826,6 @@ public class DesignerWindow : EditorWindow
             occupied[cells[i].y * cols + cells[i].x] = true;
         }
 
-        EnsureConnected(occupied, cells, cols, rows);
 
         // 固定卡：生成后按行优先排序，再等间距挑选。
         cells.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
@@ -882,7 +854,7 @@ public class DesignerWindow : EditorWindow
         situation.RebuildEdges();
     }
 
-    List<Vector2Int> BuildRandomLayout(int rows, int cols, int target, int maxCards)
+    List<Vector2Int> BuildRandomLayout(int rows, int cols, int targetCards)
     {
         var occupied = new bool[rows * cols];
         var cells = new List<Vector2Int>();
@@ -902,7 +874,7 @@ public class DesignerWindow : EditorWindow
 
         int guard = 0;
 
-        while (cells.Count < target && guard++ < 2000)
+        while (cells.Count < targetCards && guard++ < 2000)
         {
             bool placed = false;
 
@@ -911,8 +883,8 @@ public class DesignerWindow : EditorWindow
                 Vector2Int anchor = cells[Random.Range(0, cells.Count)];
                 bool horizontal = Random.value < 0.5f;
 
-                placed = TryPlaceWord(horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards) ||
-                         TryPlaceWord(!horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards);
+                placed = TryPlaceWord(horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards) ||
+                         TryPlaceWord(!horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards);
             }
 
             if (!placed)
@@ -921,8 +893,8 @@ public class DesignerWindow : EditorWindow
                 {
                     Vector2Int anchor = cells[i];
 
-                    placed = TryPlaceWord(true, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards) ||
-                             TryPlaceWord(false, anchor, occupied, cells, rowLines, columnLines, cols, rows, maxCards);
+                    placed = TryPlaceWord(true, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards) ||
+                             TryPlaceWord(false, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards);
                 }
             }
 
@@ -952,7 +924,7 @@ public class DesignerWindow : EditorWindow
 
     // 以 anchor 为交叉点放一条线。
     bool TryPlaceWord(bool horizontal, Vector2Int anchor, bool[] occupied, List<Vector2Int> cells,
-        List<int> rowLines, List<int> columnLines, int cols, int rows, int maxCards)
+        List<int> rowLines, List<int> columnLines, int cols, int rows, int targetCards)
     {
         List<int> usedLines = horizontal ? rowLines : columnLines;
         List<int> otherLines = horizontal ? columnLines : rowLines;
@@ -990,7 +962,7 @@ public class DesignerWindow : EditorWindow
             if (occupied[y * cols + x]) return false;
         }
 
-        if (cells.Count + length - 1 > maxCards) return false;
+        if (cells.Count + length - 1 > targetCards) return false;
 
         for (int i = 0; i < length; i++)
         {
@@ -1023,169 +995,9 @@ public class DesignerWindow : EditorWindow
         return true;
     }
     // 在横脊上找一段空闲的 3 列，向上或向下长出一根齿；成功返回 true。
-    bool TryAddTooth(bool[] occupied, List<Vector2Int> cells, int spineTop, int spineHeight,
-        int spineLeft, int spineWidth, int cols, int rows, int height, int maxCards)
-    {
-        if (height <= 0) return false;
-        if (cells.Count + height * 3 > maxCards) return false;
-
-        for (int attempt = 0; attempt < 24; attempt++)
-        {
-            int start = Random.Range(spineLeft, spineLeft + spineWidth - 2);
-
-            bool blocked = false;
-
-            for (int x = start; x < start + 3 && !blocked; x++)
-            {
-                for (int y = 0; y < rows; y++)
-                {
-                    if (y >= spineTop && y < spineTop + spineHeight) continue;
-                    if (occupied[y * cols + x])
-                    {
-                        blocked = true;
-                        break;
-                    }
-                }
-            }
-
-            if (blocked) continue;
-
-            bool down = Random.value < 0.5f;
-            int room = down ? rows - (spineTop + spineHeight) : spineTop;
-            if (room < height) continue;
-
-            for (int i = 0; i < height; i++)
-            {
-                int y = down ? spineTop + spineHeight + i : spineTop - 1 - i;
-
-                for (int x = start; x < start + 3; x++)
-                {
-                    Place(new Vector2Int(x, y), cols, occupied, cells);
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
     // 兜底：3×3 方块，保证每条线长度都是 3 且连通。
-    static void BuildFallbackBlock(bool[] occupied, List<Vector2Int> cells, int cols, int rows)
-    {
-        int top = Random.Range(0, Mathf.Max(1, rows - 2));
-        int left = Random.Range(0, Mathf.Max(1, cols - 2));
-
-        for (int y = top; y < Mathf.Min(top + 3, rows); y++)
-        {
-            for (int x = left; x < Mathf.Min(left + 3, cols); x++)
-            {
-                Place(new Vector2Int(x, y), cols, occupied, cells);
-            }
-        }
-    }
     // 兜底：把断开的连通块用 L 形路径接到第一块上。
-    void EnsureConnected(bool[] occupied, List<Vector2Int> cells, int cols, int rows)
-    {
-        int guard = 0;
-
-        while (guard++ < 200)
-        {
-            List<List<Vector2Int>> components = Components(occupied, cols, rows);
-            if (components.Count <= 1) return;
-
-            Vector2Int from = components[0][0];
-            Vector2Int to = components[1][0];
-
-            for (int x = Mathf.Min(from.x, to.x); x <= Mathf.Max(from.x, to.x); x++)
-            {
-                Place(new Vector2Int(x, from.y), cols, occupied, cells);
-            }
-
-            for (int y = Mathf.Min(from.y, to.y); y <= Mathf.Max(from.y, to.y); y++)
-            {
-                Place(new Vector2Int(to.x, y), cols, occupied, cells);
-            }
-        }
-    }
-
-    static List<List<Vector2Int>> Components(bool[] occupied, int cols, int rows)
-    {
-        var components = new List<List<Vector2Int>>();
-        var seen = new bool[occupied.Length];
-
-        for (int index = 0; index < occupied.Length; index++)
-        {
-            if (!occupied[index] || seen[index]) continue;
-
-            var component = new List<Vector2Int>();
-            var queue = new Queue<Vector2Int>();
-            queue.Enqueue(new Vector2Int(index % cols, index / cols));
-            seen[index] = true;
-
-            while (queue.Count > 0)
-            {
-                Vector2Int cell = queue.Dequeue();
-                component.Add(cell);
-
-                PushComponentCell(cell.x + 1, cell.y, cols, rows, occupied, seen, queue);
-                PushComponentCell(cell.x - 1, cell.y, cols, rows, occupied, seen, queue);
-                PushComponentCell(cell.x, cell.y + 1, cols, rows, occupied, seen, queue);
-                PushComponentCell(cell.x, cell.y - 1, cols, rows, occupied, seen, queue);
-            }
-
-            components.Add(component);
-        }
-
-        return components;
-    }
-
-    static void PushComponentCell(int x, int y, int cols, int rows, bool[] occupied, bool[] seen, Queue<Vector2Int> queue)
-    {
-        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
-
-        int index = y * cols + x;
-        if (!occupied[index] || seen[index]) return;
-
-        seen[index] = true;
-        queue.Enqueue(new Vector2Int(x, y));
-    }
-    static bool RowHasRun(List<int> lines, int value)
-    {
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (lines[i] == value) return true;
-        }
-
-        return false;
-    }
-
     // 在 count 个位置里挑 wanted 个，任意两个的间距不小于 gap。
-    static List<int> PickSpaced(int count, int wanted, int gap)
-    {
-        var picked = new List<int>();
-        int attempts = 0;
-
-        while (picked.Count < wanted && attempts++ < 500)
-        {
-            int candidate = Random.Range(0, count);
-            bool ok = true;
-
-            for (int i = 0; i < picked.Count; i++)
-            {
-                if (Mathf.Abs(picked[i] - candidate) < gap)
-                {
-                    ok = false;
-                    break;
-                }
-            }
-
-            if (ok) picked.Add(candidate);
-        }
-
-        picked.Sort();
-        return picked;
-    }
-
     static void Place(Vector2Int cell, int cols, bool[] occupied, List<Vector2Int> cells)
     {
         int index = cell.y * cols + cell.x;
@@ -1193,11 +1005,6 @@ public class DesignerWindow : EditorWindow
 
         occupied[index] = true;
         cells.Add(cell);
-    }
-
-    static bool Inside(Vector2Int cell, int cols, int rows)
-    {
-        return cell.x >= 0 && cell.x < cols && cell.y >= 0 && cell.y < rows;
     }
 
     static bool IsOccupied(Vector2Int cell, int cols, bool[] occupied)
