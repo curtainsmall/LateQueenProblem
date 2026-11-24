@@ -176,11 +176,13 @@ public class DesignerWindow : EditorWindow
         }
 
         _workspace = loaded;
-        _selectedIndex = -1;
+
+        // 加载后自动选中第一个情况，否则界面看起来是空的。
+        _selectedIndex = _workspace.situations.Count > 0 ? 0 : -1;
         _selectedCardId = null;
         _result = null;
         _viewFocused = false;
-        _status = "已加载：" + _workspacePath;
+        _status = "已加载：" + _workspacePath + "（" + _workspace.situations.Count + " 个情况）";
         Repaint();
     }
 
@@ -858,8 +860,6 @@ public class DesignerWindow : EditorWindow
     {
         var occupied = new bool[rows * cols];
         var cells = new List<Vector2Int>();
-        var rowLines = new List<int>();
-        var columnLines = new List<int>();
 
         int firstRow = Random.Range(0, rows);
         int firstLength = Mathf.Min(Random.Range(4, 9), cols);
@@ -869,8 +869,6 @@ public class DesignerWindow : EditorWindow
         {
             Place(new Vector2Int(firstLeft + i, firstRow), cols, occupied, cells);
         }
-
-        rowLines.Add(firstRow);
 
         int guard = 0;
 
@@ -883,8 +881,8 @@ public class DesignerWindow : EditorWindow
                 Vector2Int anchor = cells[Random.Range(0, cells.Count)];
                 bool horizontal = Random.value < 0.5f;
 
-                placed = TryPlaceWord(horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards) ||
-                         TryPlaceWord(!horizontal, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards);
+                placed = TryPlaceWord(horizontal, anchor, occupied, cells, cols, rows, targetCards) ||
+                         TryPlaceWord(!horizontal, anchor, occupied, cells, cols, rows, targetCards);
             }
 
             if (!placed)
@@ -893,8 +891,8 @@ public class DesignerWindow : EditorWindow
                 {
                     Vector2Int anchor = cells[i];
 
-                    placed = TryPlaceWord(true, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards) ||
-                             TryPlaceWord(false, anchor, occupied, cells, rowLines, columnLines, cols, rows, targetCards);
+                    placed = TryPlaceWord(true, anchor, occupied, cells, cols, rows, targetCards) ||
+                             TryPlaceWord(false, anchor, occupied, cells, cols, rows, targetCards);
                 }
             }
 
@@ -924,27 +922,18 @@ public class DesignerWindow : EditorWindow
 
     // 以 anchor 为交叉点放一条线。
     bool TryPlaceWord(bool horizontal, Vector2Int anchor, bool[] occupied, List<Vector2Int> cells,
-        List<int> rowLines, List<int> columnLines, int cols, int rows, int targetCards)
+        int cols, int rows, int targetCards)
     {
-        List<int> usedLines = horizontal ? rowLines : columnLines;
-        List<int> otherLines = horizontal ? columnLines : rowLines;
-
         int line = horizontal ? anchor.y : anchor.x;
         int limit = horizontal ? cols : rows;
         int cross = horizontal ? anchor.x : anchor.y;
 
-        for (int i = 0; i < usedLines.Count; i++)
-        {
-            if (usedLines[i] == line) return false;
-        }
-
-        // 必须真的穿过另一方向的线
-        bool crosses = false;
-        for (int i = 0; i < otherLines.Count; i++)
-        {
-            int other = horizontal ? anchor.x : anchor.y;
-            if (otherLines[i] == other) crosses = true;
-        }
+        // 交叉点必须在另一方向上已有相邻卡（即它属于一条垂直方向的线）
+        bool crosses = horizontal
+            ? IsOccupied(new Vector2Int(anchor.x, anchor.y - 1), cols, occupied) ||
+              IsOccupied(new Vector2Int(anchor.x, anchor.y + 1), cols, occupied)
+            : IsOccupied(new Vector2Int(anchor.x - 1, anchor.y), cols, occupied) ||
+              IsOccupied(new Vector2Int(anchor.x + 1, anchor.y), cols, occupied);
 
         if (!crosses) return false;
 
@@ -991,7 +980,6 @@ public class DesignerWindow : EditorWindow
             return false;
         }
 
-        usedLines.Add(line);
         return true;
     }
     // 在横脊上找一段空闲的 3 列，向上或向下长出一根齿；成功返回 true。
