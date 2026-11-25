@@ -22,11 +22,14 @@ public sealed class ViewManager : MonoBehaviour
     [SerializeField, Tooltip("插曲文字。")]
     GameObject _uiTextPrefab;
 
-    [SerializeField, Tooltip("继续按钮。")]
-    GameObject _uiContinuePrefab;
+    [SerializeField, Tooltip("按钮。")]
+    GameObject _uiButtonPrefab;
 
-    [SerializeField, Tooltip("Esc 按钮。")]
-    GameObject _uiEscapePrefab;
+    [SerializeField, Tooltip("Esc 按钮的布局。")]
+    ButtonSpec _escSpec;
+
+    [SerializeField, Tooltip("继续按钮的布局。")]
+    ButtonSpec _continueSpec;
 
     [SerializeField, Tooltip("世界元素实例的父节点。")]
     Transform _viewRoot;
@@ -52,7 +55,7 @@ public sealed class ViewManager : MonoBehaviour
     GameObject _uiContinue;
     GameObject _uiEscape;
 
-    UITextElement _textElement;
+    UIText _textElement;
 
     LevelData _level;
     bool _interludeVisible;
@@ -256,8 +259,8 @@ public sealed class ViewManager : MonoBehaviour
     {
         if (_uiEscape == null)
         {
-            _uiEscape = InstantiateUi(_uiEscapePrefab);
-            var escape = _uiEscape.GetComponent<UIButtonElement>();
+            _uiEscape = CreateButton(_escSpec);
+            var escape = _uiEscape.GetComponent<UIButton>();
             if (escape != null) escape.Clicked += () => EscapeClicked?.Invoke();
         }
 
@@ -266,13 +269,13 @@ public sealed class ViewManager : MonoBehaviour
         if (_uiText == null)
         {
             _uiText = InstantiateUi(_uiTextPrefab);
-            _textElement = _uiText.GetComponent<UITextElement>();
+            _textElement = _uiText.GetComponent<UIText>();
         }
 
         if (_uiContinue == null)
         {
-            _uiContinue = InstantiateUi(_uiContinuePrefab);
-            var button = _uiContinue.GetComponent<UIButtonElement>();
+            _uiContinue = CreateButton(_continueSpec);
+            var button = _uiContinue.GetComponent<UIButton>();
             if (button != null) button.Clicked += () => ContinueClicked?.Invoke();
         }
     }
@@ -283,6 +286,19 @@ public sealed class ViewManager : MonoBehaviour
 
         GameObject instance = Instantiate(prefab, _viewRoot != null ? _viewRoot : transform);
         instance.name = prefab.name;
+        return instance;
+    }
+
+    GameObject CreateButton(ButtonSpec spec)
+    {
+        GameObject instance = InstantiateUi(_uiButtonPrefab);
+        var button = instance.GetComponent<UIButton>();
+
+        if (spec != null && button != null)
+        {
+            button.Setup(spec.Label, spec.Anchor, spec.Position, spec.Size, spec.HierarchyIndex);
+        }
+
         return instance;
     }
 

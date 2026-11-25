@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 /// <summary>UI 底板：颜色与边距在组件上设置，外部只负责显示/隐藏。</summary>
 [RequireComponent(typeof(Image))]
-public sealed class UIPanelElement : MonoBehaviour
+public sealed class UIPanel : MonoBehaviour
 {
     [SerializeField, Tooltip("底板颜色。")]
     Color _color;

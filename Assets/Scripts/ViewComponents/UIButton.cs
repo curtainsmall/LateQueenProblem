@@ -2,9 +2,9 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>UI 按钮：锚点、位置、尺寸、颜色、文案都在组件上设置，外部只订阅点击。</summary>
+/// <summary>UI 按钮：锚点、位置、尺寸、颜色、文案由组件持有，可在运行时覆盖后重新应用。</summary>
 [RequireComponent(typeof(Button), typeof(Image))]
-public sealed class UIButtonElement : MonoBehaviour
+public sealed class UIButton : MonoBehaviour
 {
     [SerializeField, Tooltip("锚点（同时作为 pivot）。")]
     Vector2 _anchor;
@@ -26,6 +26,7 @@ public sealed class UIButtonElement : MonoBehaviour
 
     [SerializeField, Tooltip("文字字号占按钮高度的比例。")]
     float _fontRatio;
+
     [SerializeField, Tooltip("在同级 UI 中的绘制顺序。")]
     int _hierarchyIndex;
 
@@ -33,7 +34,26 @@ public sealed class UIButtonElement : MonoBehaviour
 
     void Awake()
     {
+        Apply();
+        GetComponent<Button>().onClick.AddListener(() => Clicked?.Invoke());
+    }
+
+    /// <summary>覆盖文案与布局后重新应用。</summary>
+    public void Setup(string label, Vector2 anchor, Vector2 position, Vector2 size, int hierarchyIndex)
+    {
+        _label = label;
+        _anchor = anchor;
+        _position = position;
+        _size = size;
+        _hierarchyIndex = hierarchyIndex;
+
+        Apply();
+    }
+
+    void Apply()
+    {
         transform.SetSiblingIndex(_hierarchyIndex);
+
         var rect = (RectTransform)transform;
         rect.anchorMin = _anchor;
         rect.anchorMax = _anchor;
@@ -50,7 +70,5 @@ public sealed class UIButtonElement : MonoBehaviour
             text.color = _textColor;
             text.fontSize = Mathf.RoundToInt(Mathf.Min(_size.x, _size.y) * _fontRatio);
         }
-
-        GetComponent<Button>().onClick.AddListener(() => Clicked?.Invoke());
     }
 }

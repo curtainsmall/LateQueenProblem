@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 /// <summary>UI 文字：字号、颜色、对齐与边距在组件上设置，外部只负责写入内容。</summary>
 [RequireComponent(typeof(Text))]
-public sealed class UITextElement : MonoBehaviour
+public sealed class UIText : MonoBehaviour
 {
     [SerializeField, Tooltip("字号。")]
     int _fontSize;
