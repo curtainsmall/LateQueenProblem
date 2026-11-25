@@ -1,123 +1,58 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-/// <summary>唯一的界面管理者：按 GameManager 的请求，用通用元素预制体搭出当前界面。</summary>
+/// <summary>唯一的界面管理者：只做抽象层面的控制，元素自身的设置由各组件负责。</summary>
 public sealed class ViewManager : MonoBehaviour
 {
-    [Header("元素预制体")]
-    [SerializeField, Tooltip("底板。")]
-    GameObject _panelPrefab;
-
-    [SerializeField, Tooltip("按钮。")]
-    GameObject _buttonPrefab;
-
-    [SerializeField, Tooltip("文字。")]
-    GameObject _textPrefab;
-
     [SerializeField, Tooltip("网格。")]
     GameObject _gridPrefab;
 
-    [SerializeField, Tooltip("手牌抽屉。")]
-    GameObject _drawerPrefab;
+    [SerializeField, Tooltip("手牌区。")]
+    GameObject _handZonePrefab;
 
     [SerializeField, Tooltip("卡牌。")]
     GameObject _cardPrefab;
 
-    [Header("场景")]
-    [SerializeField, Tooltip("元素实例的父节点。")]
+    [SerializeField, Tooltip("插曲底板。")]
+    GameObject _uiPanelPrefab;
+
+    [SerializeField, Tooltip("插曲文字。")]
+    GameObject _uiTextPrefab;
+
+    [SerializeField, Tooltip("继续按钮。")]
+    GameObject _uiContinuePrefab;
+
+    [SerializeField, Tooltip("Esc 按钮。")]
+    GameObject _uiEscapePrefab;
+
+    [SerializeField, Tooltip("世界元素实例的父节点。")]
     Transform _viewRoot;
+
+    [SerializeField, Tooltip("UI 元素的父节点（Canvas）。")]
+    Transform _uiRoot;
 
     [SerializeField, Tooltip("渲染用的相机。")]
     Camera _camera;
 
-    [Header("材质")]
-    [SerializeField, Tooltip("桌面背景的材质。")]
-    Material _backgroundMaterial;
-
-    [SerializeField, Tooltip("文字底板的材质。")]
-    Material _panelMaterial;
-
-    [SerializeField, Tooltip("Esc 按钮的材质。")]
-    Material _escMaterial;
-
-    [SerializeField, Tooltip("继续按钮的材质。")]
-    Material _continueMaterial;
-
-    [SerializeField, Tooltip("卡牌的材质。")]
-    Material _cardMaterial;
-
-    [Header("布局")]
-    [SerializeField, Tooltip("桌面的位置。")]
-    Vector3 _backgroundPosition;
-
-    [SerializeField, Tooltip("桌面的尺寸。")]
-    Vector2 _backgroundSize;
-
-    [SerializeField, Tooltip("文字底板的位置。")]
-    Vector3 _panelPosition;
-
-    [SerializeField, Tooltip("文字底板的尺寸。")]
-    Vector2 _panelSize;
-
-    [SerializeField, Tooltip("Esc 按钮的位置。")]
-    Vector3 _escPosition;
-
-    [SerializeField, Tooltip("Esc 按钮的尺寸。")]
-    Vector2 _escSize;
-
-    [SerializeField, Tooltip("Esc 按钮的文字。")]
-    string _escLabel;
-
-    [SerializeField, Tooltip("继续按钮的位置。")]
-    Vector3 _continuePosition;
-
-    [SerializeField, Tooltip("继续按钮的尺寸。")]
-    Vector2 _continueSize;
-
-    [SerializeField, Tooltip("继续按钮的文字。")]
-    string _continueLabel;
-
-    [SerializeField, Tooltip("文字的位置。")]
-    Vector3 _textPosition;
-
-    [SerializeField, Tooltip("文字的颜色。")]
-    Color _textColor;
-
-    [Header("卡牌")]
-    [SerializeField, Tooltip("卡的字体。")]
-    Font _cardFont;
-
-    [SerializeField, Tooltip("卡的世界尺寸。")]
-    Vector2 _cardSize;
-
-    [SerializeField, Tooltip("卡文字颜色。")]
-    Color _cardTextColor;
-
-    [SerializeField, Tooltip("卡文字大小。")]
-    float _cardTextSize;
-
-    [SerializeField, Tooltip("格子的世界尺寸。")]
-    Vector2 _cellSize;
-
-    [SerializeField, Tooltip("正文每行字数。")]
-    int _lineLength;
-
     public event Action ContinueClicked;
     public event Action EscapeClicked;
 
-    PanelElement _background;
     GameObject _grid;
     GameObject _cards;
-    GameObject _drawer;
-    ButtonElement _escape;
-    PanelElement _textPanel;
-    TextElement _text;
-    ButtonElement _continueButton;
+    GameObject _handZoneObject;
 
     GridMesh _gridMesh;
-    HandDrawer _drawerComponent;
+    HandZone _handZone;
+
+    GameObject _uiPanel;
+    GameObject _uiText;
+    GameObject _uiContinue;
+    GameObject _uiEscape;
+
+    UITextElement _textElement;
 
     LevelData _level;
     bool _interludeVisible;
@@ -139,16 +74,16 @@ public sealed class ViewManager : MonoBehaviour
         _interludeVisible = false;
 
         EnsureLevelViews();
+        EnsureUi();
 
-        SetActive(_background, true);
         SetActive(_grid, true);
         SetActive(_cards, true);
-        SetActive(_drawer, true);
-        SetActive(_escape, true);
+        SetActive(_handZoneObject, true);
+        SetActive(_uiPanel, false);
+        SetActive(_uiText, false);
+        SetActive(_uiContinue, false);
 
-        ClearCards();
-
-        if (_gridMesh != null) _gridMesh.Build(level.Rows, level.Cols, _cellSize);
+        if (_gridMesh != null) _gridMesh.Build(level.Rows, level.Cols);
 
         int count = level.Cards.Count;
 
@@ -167,13 +102,16 @@ public sealed class ViewManager : MonoBehaviour
         _level = null;
         _interludeVisible = true;
 
-        EnsureTextView();
+        EnsureUi();
 
-        SetActive(_textPanel, true);
-        SetActive(_text, true);
-        SetActive(_continueButton, true);
+        SetActive(_grid, false);
+        SetActive(_cards, false);
+        SetActive(_handZoneObject, false);
+        SetActive(_uiPanel, true);
+        SetActive(_uiText, true);
+        SetActive(_uiContinue, true);
 
-        if (_text != null) _text.Configure(Wrap(interlude.JoinTexts("\n")), _textColor);
+        if (_textElement != null) _textElement.SetText(interlude.JoinTexts("\n\n"));
     }
 
     public void HideAll()
@@ -182,14 +120,12 @@ public sealed class ViewManager : MonoBehaviour
         _level = null;
         _interludeVisible = false;
 
-        SetActive(_background, false);
         SetActive(_grid, false);
         SetActive(_cards, false);
-        SetActive(_drawer, false);
-        SetActive(_escape, false);
-        SetActive(_textPanel, false);
-        SetActive(_text, false);
-        SetActive(_continueButton, false);
+        SetActive(_handZoneObject, false);
+        SetActive(_uiPanel, false);
+        SetActive(_uiText, false);
+        SetActive(_uiContinue, false);
 
         ClearCards();
     }
@@ -200,47 +136,41 @@ public sealed class ViewManager : MonoBehaviour
     {
         if (Mouse.current == null) return;
 
+        bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
         Vector2 screen = Mouse.current.position.ReadValue();
 
-        if (Mouse.current.leftButton.wasPressedThisFrame) OnPressed(screen);
+        if (_level != null) UpdateDrawerHover(ScreenToWorld(screen));
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (_dragging == null && overUi) return;
+            OnPressed(screen);
+        }
         else if (Mouse.current.leftButton.wasReleasedThisFrame) OnReleased(screen);
         else if (Mouse.current.leftButton.isPressed && _dragging != null) OnDragged(screen);
     }
 
     void OnPressed(Vector2 screen)
     {
+        if (_level == null) return;
+
         Vector3 world = ScreenToWorld(screen);
+        CardView card = FindCard(world);
 
-        if (_level != null)
+        if (card == null && _handZone != null && _handZone.Contains(world))
         {
-            if (_escape != null && _escape.Contains(world))
-            {
-                EscapeClicked?.Invoke();
-                return;
-            }
-
-            if (_drawerComponent != null && _drawerComponent.Contains(world))
-            {
-                _drawerComponent.Toggle();
-                LayoutHand();
-                return;
-            }
-
-            CardView card = FindCard(world);
-            if (card == null) return;
-
-            _dragging = card;
-            _dragOffset = card.transform.position - world;
-            _dragOrder += 2;
-            card.SetOrder(_dragOrder);
-            card.SetDragging(true);
+            _handZone.TogglePinned();
+            LayoutHand();
             return;
         }
 
-        if (_interludeVisible && _continueButton != null && _continueButton.Contains(world))
-        {
-            ContinueClicked?.Invoke();
-        }
+        if (card == null) return;
+
+        _dragging = card;
+        _dragOffset = card.transform.position - world;
+        _dragOrder += 2;
+        card.SetOrder(_dragOrder);
+        card.SetDragging(true);
     }
 
     void OnDragged(Vector2 screen)
@@ -257,6 +187,22 @@ public sealed class ViewManager : MonoBehaviour
         _dragging = null;
 
         HandleDrop(card, ScreenToWorld(screen));
+    }
+
+    void UpdateDrawerHover(Vector3 world)
+    {
+        if (_handZone == null) return;
+        if (_dragging != null) return;
+
+        bool before = _handZone.IsOpen;
+
+        if (!_handZone.IsPinned)
+        {
+            if (_handZone.IsInTrigger(world)) _handZone.SetHovered(true);
+            else if (!_handZone.Contains(world)) _handZone.SetHovered(false);
+        }
+
+        if (before != _handZone.IsOpen) LayoutHand();
     }
 
     public void HandleDrop(CardView card, Vector3 world)
@@ -287,13 +233,6 @@ public sealed class ViewManager : MonoBehaviour
 
     void EnsureLevelViews()
     {
-        if (_background == null)
-        {
-            _background = InstantiateElement(_panelPrefab).GetComponent<PanelElement>();
-            _background.transform.position = _backgroundPosition;
-            _background.Configure(_backgroundMaterial, _backgroundSize);
-        }
-
         if (_grid == null)
         {
             _grid = InstantiateElement(_gridPrefab);
@@ -306,41 +245,35 @@ public sealed class ViewManager : MonoBehaviour
             _cards.transform.SetParent(_viewRoot != null ? _viewRoot : transform, false);
         }
 
-        if (_drawer == null)
+        if (_handZoneObject == null)
         {
-            _drawer = InstantiateElement(_drawerPrefab);
-            _drawerComponent = _drawer != null ? _drawer.GetComponent<HandDrawer>() : null;
-            if (_drawerComponent != null) _drawerComponent.Initialize();
-        }
-
-        if (_escape == null)
-        {
-            _escape = InstantiateElement(_buttonPrefab).GetComponent<ButtonElement>();
-            _escape.transform.position = _escPosition;
-            _escape.Configure(_escLabel, _escMaterial, _escSize);
+            _handZoneObject = InstantiateElement(_handZonePrefab);
+            _handZone = _handZoneObject != null ? _handZoneObject.GetComponent<HandZone>() : null;
         }
     }
 
-    void EnsureTextView()
+    void EnsureUi()
     {
-        if (_textPanel == null)
+        if (_uiEscape == null)
         {
-            _textPanel = InstantiateElement(_panelPrefab).GetComponent<PanelElement>();
-            _textPanel.transform.position = _panelPosition;
-            _textPanel.Configure(_panelMaterial, _panelSize);
+            _uiEscape = InstantiateUi(_uiEscapePrefab);
+            var escape = _uiEscape.GetComponent<UIButtonElement>();
+            if (escape != null) escape.Clicked += () => EscapeClicked?.Invoke();
         }
 
-        if (_text == null)
+        if (_uiPanel == null) _uiPanel = InstantiateUi(_uiPanelPrefab);
+
+        if (_uiText == null)
         {
-            _text = InstantiateElement(_textPrefab).GetComponent<TextElement>();
-            _text.transform.position = _textPosition;
+            _uiText = InstantiateUi(_uiTextPrefab);
+            _textElement = _uiText.GetComponent<UITextElement>();
         }
 
-        if (_continueButton == null)
+        if (_uiContinue == null)
         {
-            _continueButton = InstantiateElement(_buttonPrefab).GetComponent<ButtonElement>();
-            _continueButton.transform.position = _continuePosition;
-            _continueButton.Configure(_continueLabel, _continueMaterial, _continueSize);
+            _uiContinue = InstantiateUi(_uiContinuePrefab);
+            var button = _uiContinue.GetComponent<UIButtonElement>();
+            if (button != null) button.Clicked += () => ContinueClicked?.Invoke();
         }
     }
 
@@ -349,6 +282,15 @@ public sealed class ViewManager : MonoBehaviour
         if (prefab == null) return new GameObject("MissingElement");
 
         GameObject instance = Instantiate(prefab, _viewRoot != null ? _viewRoot : transform);
+        instance.name = prefab.name;
+        return instance;
+    }
+
+    GameObject InstantiateUi(GameObject prefab)
+    {
+        if (prefab == null) return new GameObject("MissingUiElement");
+
+        GameObject instance = Instantiate(prefab, _uiRoot != null ? _uiRoot : transform);
         instance.name = prefab.name;
         return instance;
     }
@@ -363,10 +305,9 @@ public sealed class ViewManager : MonoBehaviour
 
     Vector3 HandPosition(int index, int count)
     {
-        if (_drawerComponent == null) return Vector3.zero;
-        if (!_drawerComponent.IsOpen) return new Vector3(0f, _drawerComponent.HiddenPosition, 0f);
+        if (_handZone == null) return Vector3.zero;
 
-        return _drawerComponent.Slot(index, count);
+        return _handZone.Slot(index, count);
     }
 
     void LayoutHand()
@@ -393,7 +334,7 @@ public sealed class ViewManager : MonoBehaviour
         cardObject.name = "Card_" + data.Id;
 
         var card = cardObject.GetComponent<CardView>();
-        card.Configure(data.Id, data.Text, _cardMaterial, _cardFont, _cardTextColor, _cardSize, _cardTextSize);
+        card.Setup(data.Id, data.Text);
 
         _cardsById[data.Id] = card;
         return card;
@@ -461,45 +402,8 @@ public sealed class ViewManager : MonoBehaviour
         return 0;
     }
 
-    static void SetActive(Component target, bool active)
-    {
-        if (target != null) target.gameObject.SetActive(active);
-    }
-
     static void SetActive(GameObject target, bool active)
     {
         if (target != null) target.SetActive(active);
-    }
-
-    string Wrap(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
-
-        int limit = Mathf.Max(1, _lineLength);
-        var builder = new System.Text.StringBuilder(text.Length + text.Length / limit);
-        int count = 0;
-
-        for (int i = 0; i < text.Length; i++)
-        {
-            char character = text[i];
-
-            if (character == '\n')
-            {
-                count = 0;
-                builder.Append(character);
-                continue;
-            }
-
-            builder.Append(character);
-            count++;
-
-            if (count >= limit)
-            {
-                builder.Append('\n');
-                count = 0;
-            }
-        }
-
-        return builder.ToString();
     }
 }

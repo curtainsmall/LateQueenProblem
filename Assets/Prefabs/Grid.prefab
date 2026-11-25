@@ -106,3 +106,4 @@ MonoBehaviour:
   _lineColor: {r: 0.16, g: 0.17, b: 0.2, a: 1}
   _cellColor: {r: 0.055, g: 0.058, b: 0.066, a: 1}
   _lineWidth: 0.02
+  _cellSize: {x: 1.5, y: 1}

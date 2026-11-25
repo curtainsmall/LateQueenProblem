@@ -14,10 +14,12 @@ public sealed class GridMesh : MonoBehaviour
     [SerializeField, Tooltip("格线宽度（世界单位）。")]
     float _lineWidth;
 
+    [SerializeField, Tooltip("格子的世界尺寸。")]
+    Vector2 _cellSize;
+
     Mesh _mesh;
     int _rows;
     int _cols;
-    Vector2 _cellSize;
 
     public int Rows => _rows;
     public int Cols => _cols;
@@ -41,13 +43,12 @@ public sealed class GridMesh : MonoBehaviour
         renderer.sortingOrder = 0;
     }
 
-    public void Build(int rows, int cols, Vector2 cellSize)
+    public void Build(int rows, int cols)
     {
         EnsureMesh();
 
         _rows = Mathf.Max(1, rows);
         _cols = Mathf.Max(1, cols);
-        _cellSize = cellSize;
 
         var vertices = new List<Vector3>();
         var colors = new List<Color>();
