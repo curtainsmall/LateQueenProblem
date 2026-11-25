@@ -246,5 +246,5 @@ MonoBehaviour:
   _material: {fileID: 2100000, guid: 3af82ea0dcca5cd40ba44ad900212a8a, type: 2}
   _font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
   _textColor: {r: 0.1, g: 0.1, b: 0.12, a: 1}
-  _size: {x: 1.5, y: 0.85}
+  _size: {x: 1.32, y: 0.8}
   _characterSize: 0.022

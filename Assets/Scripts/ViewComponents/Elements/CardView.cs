@@ -44,7 +44,10 @@ public sealed class CardView : MonoBehaviour
 
         transform.localScale = _baseScale;
         _renderer.transform.localScale = new Vector3(_size.x, _size.y, 1f);
+        _renderer.transform.localPosition = new Vector3(0f, 0f, -0.01f);
         _renderer.sharedMaterial = _material;
+
+        if (_label != null) _label.transform.localPosition = new Vector3(0f, 0f, -0.02f);
 
         _label.font = _font;
         _label.text = text;
