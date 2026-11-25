@@ -6,11 +6,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField, Tooltip("按顺序排列的关卡与插曲。")]
     StageData[] _flow;
 
-    [SerializeField, Tooltip("关卡的显示视图。")]
-    PuzzleView _puzzleView;
-
-    [SerializeField, Tooltip("插曲的显示视图。")]
-    InterludeView _interludeView;
+    [SerializeField, Tooltip("界面管理者。")]
+    ViewManager _view;
 
     readonly GameContext _context = new GameContext();
 
@@ -19,6 +16,24 @@ public sealed class GameManager : MonoBehaviour
 
     public GameContext Context => _context;
     public StageData CurrentStage => _index >= 0 && _index < _flow.Length ? _flow[_index] : null;
+
+    void Awake()
+    {
+        if (_view != null)
+        {
+            _view.ContinueClicked += MarkInterludeAcknowledged;
+            _view.EscapeClicked += OnEscapeClicked;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (_view != null)
+        {
+            _view.ContinueClicked -= MarkInterludeAcknowledged;
+            _view.EscapeClicked -= OnEscapeClicked;
+        }
+    }
 
     void Start()
     {
@@ -49,8 +64,6 @@ public sealed class GameManager : MonoBehaviour
 
     void Advance()
     {
-        HideAll();
-
         _context.Reset();
         _index++;
 
@@ -58,6 +71,7 @@ public sealed class GameManager : MonoBehaviour
         {
             _index = -1;
             _started = false;
+            if (_view != null) _view.HideAll();
             return;
         }
 
@@ -66,18 +80,18 @@ public sealed class GameManager : MonoBehaviour
 
     void PresentCurrent()
     {
-        HideAll();
+        if (_view == null) return;
 
         StageData stage = _flow[_index];
 
         switch (stage)
         {
-            case LevelData level when _puzzleView != null:
-                _puzzleView.Show(level, this);
+            case LevelData level:
+                _view.ShowLevel(level);
                 break;
 
-            case InterludeData interlude when _interludeView != null:
-                _interludeView.Show(interlude, this);
+            case InterludeData interlude:
+                _view.ShowInterlude(interlude);
                 break;
 
             default:
@@ -86,10 +100,9 @@ public sealed class GameManager : MonoBehaviour
         }
     }
 
-    void HideAll()
+    void OnEscapeClicked()
     {
-        if (_puzzleView != null) _puzzleView.Hide();
-        if (_interludeView != null) _interludeView.Hide();
+        // 暂时没有菜单，留作占位。
     }
 
     public void MarkInterludeAcknowledged()
