@@ -3,33 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>唯一的界面管理者：按 GameManager 的请求，用元素预制体搭出当前要显示的界面。</summary>
+/// <summary>唯一的界面管理者：按 GameManager 的请求，用通用元素预制体搭出当前界面。</summary>
 public sealed class ViewManager : MonoBehaviour
 {
     [Header("元素预制体")]
-    [SerializeField, Tooltip("桌面背景。")]
-    GameObject _backgroundPrefab;
-
-    [SerializeField, Tooltip("网格。")]
-    GameObject _gridPrefab;
-
-    [SerializeField, Tooltip("卡牌容器。")]
-    GameObject _cardsPrefab;
-
-    [SerializeField, Tooltip("手牌抽屉。")]
-    GameObject _drawerPrefab;
-
-    [SerializeField, Tooltip("Esc 按钮。")]
-    GameObject _escapePrefab;
-
-    [SerializeField, Tooltip("文字底板。")]
+    [SerializeField, Tooltip("底板。")]
     GameObject _panelPrefab;
+
+    [SerializeField, Tooltip("按钮。")]
+    GameObject _buttonPrefab;
 
     [SerializeField, Tooltip("文字。")]
     GameObject _textPrefab;
 
-    [SerializeField, Tooltip("继续按钮。")]
-    GameObject _continuePrefab;
+    [SerializeField, Tooltip("网格。")]
+    GameObject _gridPrefab;
+
+    [SerializeField, Tooltip("手牌抽屉。")]
+    GameObject _drawerPrefab;
+
+    [SerializeField, Tooltip("卡牌。")]
+    GameObject _cardPrefab;
 
     [Header("场景")]
     [SerializeField, Tooltip("元素实例的父节点。")]
@@ -38,10 +32,60 @@ public sealed class ViewManager : MonoBehaviour
     [SerializeField, Tooltip("渲染用的相机。")]
     Camera _camera;
 
-    [Header("卡牌")]
-    [SerializeField, Tooltip("卡的材质。")]
+    [Header("材质")]
+    [SerializeField, Tooltip("桌面背景的材质。")]
+    Material _backgroundMaterial;
+
+    [SerializeField, Tooltip("文字底板的材质。")]
+    Material _panelMaterial;
+
+    [SerializeField, Tooltip("Esc 按钮的材质。")]
+    Material _escMaterial;
+
+    [SerializeField, Tooltip("继续按钮的材质。")]
+    Material _continueMaterial;
+
+    [SerializeField, Tooltip("卡牌的材质。")]
     Material _cardMaterial;
 
+    [Header("布局")]
+    [SerializeField, Tooltip("桌面的位置。")]
+    Vector3 _backgroundPosition;
+
+    [SerializeField, Tooltip("桌面的尺寸。")]
+    Vector2 _backgroundSize;
+
+    [SerializeField, Tooltip("文字底板的位置。")]
+    Vector3 _panelPosition;
+
+    [SerializeField, Tooltip("文字底板的尺寸。")]
+    Vector2 _panelSize;
+
+    [SerializeField, Tooltip("Esc 按钮的位置。")]
+    Vector3 _escPosition;
+
+    [SerializeField, Tooltip("Esc 按钮的尺寸。")]
+    Vector2 _escSize;
+
+    [SerializeField, Tooltip("Esc 按钮的文字。")]
+    string _escLabel;
+
+    [SerializeField, Tooltip("继续按钮的位置。")]
+    Vector3 _continuePosition;
+
+    [SerializeField, Tooltip("继续按钮的尺寸。")]
+    Vector2 _continueSize;
+
+    [SerializeField, Tooltip("继续按钮的文字。")]
+    string _continueLabel;
+
+    [SerializeField, Tooltip("文字的位置。")]
+    Vector3 _textPosition;
+
+    [SerializeField, Tooltip("文字的颜色。")]
+    Color _textColor;
+
+    [Header("卡牌")]
     [SerializeField, Tooltip("卡的字体。")]
     Font _cardFont;
 
@@ -63,20 +107,17 @@ public sealed class ViewManager : MonoBehaviour
     public event Action ContinueClicked;
     public event Action EscapeClicked;
 
-    GameObject _background;
+    PanelElement _background;
     GameObject _grid;
     GameObject _cards;
     GameObject _drawer;
-    GameObject _escape;
-    GameObject _panel;
-    GameObject _text;
-    GameObject _continue;
+    ButtonElement _escape;
+    PanelElement _textPanel;
+    TextElement _text;
+    ButtonElement _continueButton;
 
     GridMesh _gridMesh;
     HandDrawer _drawerComponent;
-    EscButton _escapeComponent;
-    TextMesh _textMesh;
-    Renderer _continueRenderer;
 
     LevelData _level;
     bool _interludeVisible;
@@ -128,11 +169,11 @@ public sealed class ViewManager : MonoBehaviour
 
         EnsureTextView();
 
-        SetActive(_panel, true);
+        SetActive(_textPanel, true);
         SetActive(_text, true);
-        SetActive(_continue, true);
+        SetActive(_continueButton, true);
 
-        if (_textMesh != null) _textMesh.text = Wrap(interlude.JoinTexts("\n"));
+        if (_text != null) _text.Configure(Wrap(interlude.JoinTexts("\n")), _textColor);
     }
 
     public void HideAll()
@@ -146,9 +187,9 @@ public sealed class ViewManager : MonoBehaviour
         SetActive(_cards, false);
         SetActive(_drawer, false);
         SetActive(_escape, false);
-        SetActive(_panel, false);
+        SetActive(_textPanel, false);
         SetActive(_text, false);
-        SetActive(_continue, false);
+        SetActive(_continueButton, false);
 
         ClearCards();
     }
@@ -172,7 +213,7 @@ public sealed class ViewManager : MonoBehaviour
 
         if (_level != null)
         {
-            if (_escapeComponent != null && _escapeComponent.Contains(world))
+            if (_escape != null && _escape.Contains(world))
             {
                 EscapeClicked?.Invoke();
                 return;
@@ -196,7 +237,7 @@ public sealed class ViewManager : MonoBehaviour
             return;
         }
 
-        if (_interludeVisible && _continueRenderer != null && Inside(_continueRenderer.bounds, world))
+        if (_interludeVisible && _continueButton != null && _continueButton.Contains(world))
         {
             ContinueClicked?.Invoke();
         }
@@ -246,23 +287,66 @@ public sealed class ViewManager : MonoBehaviour
 
     void EnsureLevelViews()
     {
-        if (_background == null) _background = InstantiateElement(_backgroundPrefab);
-        if (_grid == null) { _grid = InstantiateElement(_gridPrefab); _gridMesh = _grid != null ? _grid.GetComponent<GridMesh>() : null; }
-        if (_cards == null) _cards = InstantiateElement(_cardsPrefab);
-        if (_drawer == null) { _drawer = InstantiateElement(_drawerPrefab); _drawerComponent = _drawer != null ? _drawer.GetComponent<HandDrawer>() : null; if (_drawerComponent != null) _drawerComponent.Initialize(); }
-        if (_escape == null) { _escape = InstantiateElement(_escapePrefab); _escapeComponent = _escape != null ? _escape.GetComponent<EscButton>() : null; }
+        if (_background == null)
+        {
+            _background = InstantiateElement(_panelPrefab).GetComponent<PanelElement>();
+            _background.transform.position = _backgroundPosition;
+            _background.Configure(_backgroundMaterial, _backgroundSize);
+        }
+
+        if (_grid == null)
+        {
+            _grid = InstantiateElement(_gridPrefab);
+            _gridMesh = _grid != null ? _grid.GetComponent<GridMesh>() : null;
+        }
+
+        if (_cards == null)
+        {
+            _cards = new GameObject("Cards");
+            _cards.transform.SetParent(_viewRoot != null ? _viewRoot : transform, false);
+        }
+
+        if (_drawer == null)
+        {
+            _drawer = InstantiateElement(_drawerPrefab);
+            _drawerComponent = _drawer != null ? _drawer.GetComponent<HandDrawer>() : null;
+            if (_drawerComponent != null) _drawerComponent.Initialize();
+        }
+
+        if (_escape == null)
+        {
+            _escape = InstantiateElement(_buttonPrefab).GetComponent<ButtonElement>();
+            _escape.transform.position = _escPosition;
+            _escape.Configure(_escLabel, _escMaterial, _escSize);
+        }
     }
 
     void EnsureTextView()
     {
-        if (_panel == null) _panel = InstantiateElement(_panelPrefab);
-        if (_text == null) { _text = InstantiateElement(_textPrefab); _textMesh = _text != null ? _text.GetComponent<TextMesh>() : null; }
-        if (_continue == null) { _continue = InstantiateElement(_continuePrefab); _continueRenderer = _continue != null ? _continue.GetComponent<Renderer>() : null; }
+        if (_textPanel == null)
+        {
+            _textPanel = InstantiateElement(_panelPrefab).GetComponent<PanelElement>();
+            _textPanel.transform.position = _panelPosition;
+            _textPanel.Configure(_panelMaterial, _panelSize);
+        }
+
+        if (_text == null)
+        {
+            _text = InstantiateElement(_textPrefab).GetComponent<TextElement>();
+            _text.transform.position = _textPosition;
+        }
+
+        if (_continueButton == null)
+        {
+            _continueButton = InstantiateElement(_buttonPrefab).GetComponent<ButtonElement>();
+            _continueButton.transform.position = _continuePosition;
+            _continueButton.Configure(_continueLabel, _continueMaterial, _continueSize);
+        }
     }
 
     GameObject InstantiateElement(GameObject prefab)
     {
-        if (prefab == null) return null;
+        if (prefab == null) return new GameObject("MissingElement");
 
         GameObject instance = Instantiate(prefab, _viewRoot != null ? _viewRoot : transform);
         instance.name = prefab.name;
@@ -305,11 +389,11 @@ public sealed class ViewManager : MonoBehaviour
 
     CardView CreateCard(CardData data)
     {
-        var cardObject = new GameObject("Card_" + data.Id);
-        cardObject.transform.SetParent(_cards != null ? _cards.transform : transform, false);
+        GameObject cardObject = Instantiate(_cardPrefab, _cards != null ? _cards.transform : transform);
+        cardObject.name = "Card_" + data.Id;
 
-        var card = cardObject.AddComponent<CardView>();
-        card.Initialize(data.Id, data.Text, _cardMaterial, _cardFont, _cardTextColor, _cardSize, _cardTextSize, 10);
+        var card = cardObject.GetComponent<CardView>();
+        card.Configure(data.Id, data.Text, _cardMaterial, _cardFont, _cardTextColor, _cardSize, _cardTextSize);
 
         _cardsById[data.Id] = card;
         return card;
@@ -377,15 +461,14 @@ public sealed class ViewManager : MonoBehaviour
         return 0;
     }
 
+    static void SetActive(Component target, bool active)
+    {
+        if (target != null) target.gameObject.SetActive(active);
+    }
+
     static void SetActive(GameObject target, bool active)
     {
         if (target != null) target.SetActive(active);
-    }
-
-    static bool Inside(Bounds bounds, Vector3 point)
-    {
-        return point.x >= bounds.min.x && point.x <= bounds.max.x
-            && point.y >= bounds.min.y && point.y <= bounds.max.y;
     }
 
     string Wrap(string text)

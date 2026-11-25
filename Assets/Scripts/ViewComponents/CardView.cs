@@ -1,13 +1,19 @@
 using UnityEngine;
 
-/// <summary>一张卡的世界空间对象：Quad + 材质 + 文字，由 PuzzleView 生成与拖动。</summary>
+/// <summary>一张卡：底板 Quad + 文字，内容与尺寸在实例化后设置。</summary>
 public sealed class CardView : MonoBehaviour
 {
+    [SerializeField, Tooltip("卡面。")]
     MeshRenderer _renderer;
-    MeshRenderer _labelRenderer;
+
+    [SerializeField, Tooltip("文字。")]
     TextMesh _label;
+
+    [SerializeField, Tooltip("文字的渲染器。")]
+    MeshRenderer _labelRenderer;
+
     Vector3 _home;
-    Vector3 _baseScale;
+    Vector3 _baseScale = Vector3.one;
 
     public string CardId { get; private set; }
     public int Row { get; private set; } = -1;
@@ -17,39 +23,20 @@ public sealed class CardView : MonoBehaviour
     public Bounds Bounds => _renderer.bounds;
     public int SortingOrder => _renderer.sortingOrder;
 
-    public void Initialize(string cardId, string text, Material material, Font font, Color textColor, Vector2 size, float textSize, int sortingOrder)
+    public void Configure(string cardId, string text, Material material, Font font, Color textColor, Vector2 size, float characterSize)
     {
         CardId = cardId;
-        _baseScale = Vector3.one;
 
-        var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        quad.name = "Sprite";
-        quad.transform.SetParent(transform, false);
-        quad.transform.localScale = new Vector3(size.x, size.y, 1f);
-
-        var collider = quad.GetComponent<Collider>();
-        if (collider != null) Destroy(collider);
-
-        _renderer = quad.GetComponent<MeshRenderer>();
+        transform.localScale = _baseScale;
+        _renderer.transform.localScale = new Vector3(size.x, size.y, 1f);
         _renderer.sharedMaterial = material;
-        _renderer.sortingOrder = sortingOrder;
 
-        var labelObject = new GameObject("Label");
-        labelObject.transform.SetParent(transform, false);
-        labelObject.transform.localPosition = new Vector3(0f, 0f, -0.01f);
-
-        _label = labelObject.AddComponent<TextMesh>();
         _label.font = font;
-        _label.fontSize = 64;
-        _label.characterSize = textSize;
-        _label.anchor = TextAnchor.MiddleCenter;
-        _label.alignment = TextAlignment.Center;
-        _label.color = textColor;
         _label.text = text;
-
-        _labelRenderer = labelObject.GetComponent<MeshRenderer>();
+        _label.color = textColor;
+        _label.characterSize = characterSize;
         _labelRenderer.sharedMaterial = font.material;
-        _labelRenderer.sortingOrder = sortingOrder + 1;
+        _labelRenderer.sortingOrder = _renderer.sortingOrder + 1;
     }
 
     public void SetHome(Vector3 position)
