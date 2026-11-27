@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>UI 按钮：锚点、位置、尺寸、颜色、文案由组件持有，可在运行时覆盖后重新应用。</summary>
+/// <summary>UI 按钮：锚点、位置、尺寸、颜色、文案由组件持有。</summary>
 [RequireComponent(typeof(Button), typeof(Image))]
 public sealed class UIButton : MonoBehaviour
 {
@@ -38,17 +38,6 @@ public sealed class UIButton : MonoBehaviour
         GetComponent<Button>().onClick.AddListener(() => Clicked?.Invoke());
     }
 
-    /// <summary>覆盖文案与布局后重新应用。</summary>
-    public void Setup(string label, Vector2 anchor, Vector2 position, Vector2 size, int hierarchyIndex)
-    {
-        _label = label;
-        _anchor = anchor;
-        _position = position;
-        _size = size;
-        _hierarchyIndex = hierarchyIndex;
-
-        Apply();
-    }
 
     void Apply()
     {

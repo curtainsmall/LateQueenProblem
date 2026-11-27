@@ -1,4 +1,4 @@
-Shader "LateQueenProblem/TableGradient"
+Shader "LateQueenProblem/GrayGradient"
 {
     Properties
     {

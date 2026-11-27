@@ -148,10 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90e9485108816604f894aa4fea4624e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  _flow:
-  - {fileID: 11400000, guid: 2c6d7aaec59cc194b991f002e5abaa6e, type: 2}
-  - {fileID: 11400000, guid: 0803fc24e645d3544866506ce2c38052, type: 2}
-  _view: {fileID: 1455675215}
+  _flow: []
 --- !u!4 &283636460
 Transform:
   m_ObjectHideFlags: 0
@@ -664,8 +661,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1455675216}
   - component: {fileID: 1455675215}
-  - component: {fileID: 1455675218}
-  - component: {fileID: 1455675217}
   m_Layer: 0
   m_Name: ViewManager
   m_TagString: Untagged
@@ -685,8 +680,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e9f168bc0ca07d4c8a00be63505ea62, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ViewManager
-  _levelView: {fileID: 1455675218}
-  _interludeView: {fileID: 1455675217}
 --- !u!4 &1455675216
 Transform:
   m_ObjectHideFlags: 0
@@ -702,59 +695,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1455675217
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1455675214}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a810ad8fb6a25049928a72269350ae2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InterludeView
-  _panelPrefab: {fileID: 5992236568041968625, guid: 1d43e26289e66514c9e75957cdbd2ced, type: 3}
-  _textPrefab: {fileID: 1375960723772666379, guid: fa35c397eb7eae0429a14154e14058a6, type: 3}
-  _buttonPrefab: {fileID: 5750782077680125757, guid: 5edc0fd2a8685c844a095cafae788b86, type: 3}
-  _continueSpec:
-    _label: "\u7EE7\u7EED"
-    _anchor: {x: 0.5, y: 0}
-    _position: {x: 0, y: 60}
-    _size: {x: 200, y: 56}
-    _hierarchyIndex: 2
-  _escapeSpec:
-    _label: "\u2699"
-    _anchor: {x: 0, y: 1}
-    _position: {x: 24, y: -24}
-    _size: {x: 96, y: 44}
-    _hierarchyIndex: 3
-  _uiRoot: {fileID: 316943188}
---- !u!114 &1455675218
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1455675214}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72a05a2b857ff934c8db542029a06903, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelView
-  _gridPrefab: {fileID: 946869145553078045, guid: fcd47b75c40039148ba360e02d61448a, type: 3}
-  _cardPrefab: {fileID: 5788557628254284245, guid: d952cdc2da4a7fa4fb762928d1eb6bd4, type: 3}
-  _handZonePrefab: {fileID: 7986498888358854166, guid: e02dd88c76b3a524794c2dab45c1fad2, type: 3}
-  _buttonPrefab: {fileID: 5750782077680125757, guid: 5edc0fd2a8685c844a095cafae788b86, type: 3}
-  _escapeSpec:
-    _label: "\u2699"
-    _anchor: {x: 0, y: 1}
-    _position: {x: 24, y: -24}
-    _size: {x: 96, y: 44}
-    _hierarchyIndex: 3
-  _viewRoot: {fileID: 1142850772}
-  _uiRoot: {fileID: 316943188}
-  _camera: {fileID: 674695003}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

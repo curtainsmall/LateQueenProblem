@@ -3,11 +3,8 @@ using UnityEngine;
 /// <summary>按顺序推进流程：每一步的完成条件由该步的数据通过 IsCompleted 回答。</summary>
 public sealed class GameManager : MonoBehaviour
 {
-    [SerializeField, Tooltip("按顺序排列的关卡与插曲。")]
+    [SerializeField, Tooltip("按顺序排列的 stage。")]
     StageData[] _flow;
-
-    [SerializeField, Tooltip("界面管理者。")]
-    ViewManager _view;
 
     readonly GameContext _context = new GameContext();
 
@@ -16,24 +13,6 @@ public sealed class GameManager : MonoBehaviour
 
     public GameContext Context => _context;
     public StageData CurrentStage => _index >= 0 && _index < _flow.Length ? _flow[_index] : null;
-
-    void Awake()
-    {
-        if (_view != null)
-        {
-            _view.ContinueClicked += MarkInterludeAcknowledged;
-            _view.EscapeClicked += OnEscapeClicked;
-        }
-    }
-
-    void OnDestroy()
-    {
-        if (_view != null)
-        {
-            _view.ContinueClicked -= MarkInterludeAcknowledged;
-            _view.EscapeClicked -= OnEscapeClicked;
-        }
-    }
 
     void Start()
     {
@@ -71,7 +50,6 @@ public sealed class GameManager : MonoBehaviour
         {
             _index = -1;
             _started = false;
-            if (_view != null) _view.HideAll();
             return;
         }
 
@@ -80,29 +58,9 @@ public sealed class GameManager : MonoBehaviour
 
     void PresentCurrent()
     {
-        if (_view == null) return;
-
         StageData stage = _flow[_index];
 
-        switch (stage)
-        {
-            case LevelData level:
-                _view.ShowLevel(level);
-                break;
-
-            case InterludeData interlude:
-                _view.ShowInterlude(interlude);
-                break;
-
-            default:
-                Debug.LogWarning("未知的流程类型：" + stage);
-                break;
-        }
-    }
-
-    void OnEscapeClicked()
-    {
-        // 暂时没有菜单，留作占位。
+        Debug.LogWarning("没有可用于呈现的 stage 类型：" + stage.name);
     }
 
     public void MarkInterludeAcknowledged()

@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Table
+  m_Name: GrayGradient
   m_Shader: {fileID: 4800000, guid: bf65d7c45b6071a45a6b1d1d09597915, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
