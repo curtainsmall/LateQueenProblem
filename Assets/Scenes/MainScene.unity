@@ -201,6 +201,7 @@ MonoBehaviour:
   _zoomStep: 0.12
   _minDistance: 4
   _maxDistance: 24
+  _transitionDuration: 0.4
   _awayPosition: {x: 8.5, y: 6.6, z: -12.1}
   _awayRotation: {x: 22, y: 334.9, z: 0}
   _awayFov: 40
@@ -210,7 +211,7 @@ MonoBehaviour:
   _focusFov: 32
   _topYaw: 0
   _topDistance: 10
-  _topOrthoSize: 2.6
+  _topFov: 32
 --- !u!4 &390774821
 Transform:
   m_ObjectHideFlags: 0
