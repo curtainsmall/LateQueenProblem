@@ -37,9 +37,12 @@ public sealed class CameraRig : MonoBehaviour
     float _maxDistance = 24f;
 
     [Header("Away")]
-    [SerializeField] float _awayYaw = 324.9f;
-    [SerializeField] float _awayPitch = 22f;
-    [SerializeField] float _awayDistance = 16f;
+    [SerializeField, Tooltip("相机世界位置（不绕枢轴）。")]
+    Vector3 _awayPosition = new Vector3(8.5f, 6.6f, -12.1f);
+
+    [SerializeField, Tooltip("相机世界旋转。")]
+    Vector3 _awayRotation = new Vector3(22f, 334.9f, 0f);
+
     [SerializeField] float _awayFov = 40f;
 
     [Header("Focus")]
@@ -62,21 +65,34 @@ public sealed class CameraRig : MonoBehaviour
     float _lastPitch;
     float _lastDistance;
     bool _hasMemory;
+    bool _initialized;
 
     public ViewMode Mode => _mode;
 
     void Awake()
     {
-        _lastYaw = _focusYaw;
-        _lastPitch = _focusPitch;
-        _lastDistance = _focusDistance;
-        _hasMemory = true;
-
+        EnsureInitialized();
         Show(ViewMode.Focus);
+    }
+
+    void EnsureInitialized()
+    {
+        if (_initialized) return;
+
+        _yaw = _focusYaw;
+        _pitch = _focusPitch;
+        _distance = _focusDistance;
+        _lastYaw = _yaw;
+        _lastPitch = _pitch;
+        _lastDistance = _distance;
+        _hasMemory = true;
+        _initialized = true;
     }
 
     public void Show(ViewMode mode)
     {
+        EnsureInitialized();
+
         if (_mode == ViewMode.Focus && mode != ViewMode.Focus) RememberFocus();
 
         _mode = mode;
@@ -84,9 +100,6 @@ public sealed class CameraRig : MonoBehaviour
         switch (mode)
         {
             case ViewMode.Away:
-                _yaw = _awayYaw;
-                _pitch = _awayPitch;
-                _distance = _awayDistance;
                 _camera.orthographic = false;
                 _camera.fieldOfView = _awayFov;
                 break;
@@ -121,6 +134,37 @@ public sealed class CameraRig : MonoBehaviour
         Apply();
     }
 
+    /// <summary>把当前的角度与距离存成指定模式的预设。</summary>
+    public void CapturePreset(ViewMode mode)
+    {
+        float yaw = Mathf.DeltaAngle(0f, transform.eulerAngles.y);
+        float pitch = Mathf.DeltaAngle(0f, transform.eulerAngles.x);
+        float distance = Mathf.Abs(_camera.transform.localPosition.z);
+
+        switch (mode)
+        {
+            case ViewMode.Away:
+                _awayPosition = _camera.transform.position;
+                _awayRotation = _camera.transform.eulerAngles;
+                break;
+
+            case ViewMode.Focus:
+                _focusYaw = yaw;
+                _focusPitch = pitch;
+                _focusDistance = distance;
+                _lastYaw = yaw;
+                _lastPitch = pitch;
+                _lastDistance = distance;
+                _hasMemory = true;
+                break;
+
+            case ViewMode.Top:
+                _topYaw = yaw;
+                _topDistance = distance;
+                break;
+        }
+    }
+
     void RememberFocus()
     {
         _lastYaw = _yaw;
@@ -152,6 +196,17 @@ public sealed class CameraRig : MonoBehaviour
 
     void Apply()
     {
+        if (_mode == ViewMode.Away)
+        {
+            // Away 是自由的叙事机位：不绕枢轴，直接使用保存的世界位置与旋转。
+            transform.position = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+
+            _camera.transform.position = _awayPosition;
+            _camera.transform.rotation = Quaternion.Euler(_awayRotation);
+            return;
+        }
+
         transform.position = _pivot;
         transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
 

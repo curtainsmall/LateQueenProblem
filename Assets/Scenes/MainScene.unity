@@ -201,9 +201,8 @@ MonoBehaviour:
   _zoomStep: 0.12
   _minDistance: 4
   _maxDistance: 24
-  _awayYaw: 324.9
-  _awayPitch: 22
-  _awayDistance: 16
+  _awayPosition: {x: 8.5, y: 6.6, z: -12.1}
+  _awayRotation: {x: 22, y: 334.9, z: 0}
   _awayFov: 40
   _focusYaw: 324.9
   _focusPitch: 32.67
